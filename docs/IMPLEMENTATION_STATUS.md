@@ -7,11 +7,12 @@ Last updated: 2026-10-19
 **Milestone 0 (repository/environment audit) — done.**
 **Milestone 1 (project foundation) — done.**
 **Milestone 2 (Terraform Change Impact Analyzer) — done.**
+**Milestone 3 (Failure-Domain Simulator) — done.**
 
 The package installs, the API and CLI both run, SQLite schema creation is idempotent, and
-Module A (Terraform change risk analysis) is fully implemented, tested, and documented.
-Failure Simulation and Disaster Recovery (Modules B/C) do not exist yet — that starts at
-Milestone 3.
+Modules A (Terraform change risk) and B (failure-domain simulation) are fully implemented,
+tested, and documented. Disaster Recovery (Module C) does not exist yet — that starts at
+Milestone 4.
 
 ### What exists now
 
@@ -103,6 +104,51 @@ key like `credentials` was initially exercised by a test that assumed partial ne
 redaction instead of the (correct, documented) wholesale redaction — the test was fixed to
 match the intended behavior, and a second test was added to pin down the wholesale-redaction
 case explicitly.
+
+## Milestone 3: Failure-Domain Simulator (Module B)
+
+```
+src/infraguard/modules/failure_simulation/
+  models.py            Component, Dependency, Topology, FailureScenario
+  validator.py           parse_topology(): fatal vs. non-fatal (warning) issues
+  grouping.py             Redundancy-group / "logical node" membership helpers
+  simulator.py             Monotonic fixed-point cascading-failure propagation
+  capacity.py                Surviving-capacity ratios (only when data is complete)
+  analysis.py                 SPOF detection, redundancy-gap detection, scenario findings
+  analyzer.py                  Ties it together; YAML/JSON file loading + size validation
+api/v1/failure_simulation.py    POST .../validate-topology, POST .../simulate-failure
+cli/commands/failure_simulation.py  `infraguard validate-topology`, `infraguard simulate-failure`
+examples/topologies/              3 example topologies (see docs/FAILURE_SIMULATION.md)
+```
+
+### Verified commands (actually executed)
+
+```bash
+uv run infraguard validate-topology --file examples/topologies/fragile-single-instance.yaml
+uv run infraguard simulate-failure --topology examples/topologies/fragile-single-instance.yaml --failure app
+# -> 3 component(s) down total (2 cascaded); 10 finding(s)
+
+uv run infraguard simulate-failure --topology examples/topologies/redundant-app-shared-db-bottleneck.yaml --failure db
+# -> 5 component(s) down total (4 cascaded); 10 finding(s) -- shared DB takes down both
+#    "redundant" app instances despite the app tier itself having no SPOF
+
+uv run infraguard simulate-failure --topology examples/topologies/multi-zone-redundant.yaml --failure-domain zone-a
+# -> 3 component(s) down total (0 cascaded); 6 finding(s) -- full zone loss, zero cascade
+
+uv run pytest -q   # 123 passed
+uv run ruff check src tests   # All checks passed!
+```
+
+Three test/fixture bugs were caught and fixed during this milestone, not shipped silently:
+(1) a test asserted `simple_chain.yaml` would parse with zero warnings, missing that a
+topology with no declared `failure_domain` correctly produces a
+`no_failure_domains_declared` warning; (2 and 3) two SPOF tests assumed every component in a
+chain/redundant-pair fixture would be a SPOF, which is wrong by the model's own correct
+logic — a component nothing depends on (the "root" of a dependency chain, or a load
+balancer with no client-equivalent pointing at it in that minimal fixture) can never be a
+SPOF, since failing it alone has no one left to affect. The `redundant_pair.yaml` fixture
+was corrected to include a `client` depending on `lb` so the test's original intent (lb has
+no redundancy, the app tier does) is actually exercised.
 
 ## Repository audit
 

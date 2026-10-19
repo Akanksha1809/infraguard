@@ -1,0 +1,9 @@
+name: duplicate-ids
+components:
+  - id: a
+    name: A1
+    kind: service
+  - id: a
+    name: A2
+    kind: service
+dependencies: []

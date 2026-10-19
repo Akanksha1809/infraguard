@@ -1,0 +1,12 @@
+name: optional-dependency
+components:
+  - id: app
+    name: App
+    kind: app
+  - id: cache
+    name: Cache
+    kind: cache
+dependencies:
+  - from_id: app
+    to_id: cache
+    required: false

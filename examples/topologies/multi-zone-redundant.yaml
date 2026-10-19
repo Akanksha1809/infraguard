@@ -1,0 +1,76 @@
+# Every tier is duplicated across two failure domains (zone-a, zone-b), each tier's
+# instances sharing a redundancy_group. Losing an entire zone leaves the other zone's
+# instances to carry the system, with zero cascaded findings.
+name: multi-zone-redundant
+description: >
+  Client -> {lb-a, lb-b} -> {app-1, app-2} -> {db-primary, db-replica}, each pair split
+  across zone-a and zone-b with a shared redundancy_group per tier. A full zone failure
+  is survivable; a shared-dependency bottleneck like the other example topology is not
+  present here.
+
+components:
+  - id: client
+    name: Client traffic
+    kind: client
+  - id: lb-a
+    name: Load balancer (zone-a)
+    kind: load_balancer
+    capacity: 100
+    failure_domain: zone-a
+    redundancy_group: lb
+  - id: lb-b
+    name: Load balancer (zone-b)
+    kind: load_balancer
+    capacity: 100
+    failure_domain: zone-b
+    redundancy_group: lb
+  - id: app-1
+    name: App instance (zone-a)
+    kind: app
+    capacity: 100
+    failure_domain: zone-a
+    redundancy_group: app
+  - id: app-2
+    name: App instance (zone-b)
+    kind: app
+    capacity: 100
+    failure_domain: zone-b
+    redundancy_group: app
+  - id: db-primary
+    name: Database primary (zone-a)
+    kind: database
+    capacity: 100
+    failure_domain: zone-a
+    redundancy_group: db
+  - id: db-replica
+    name: Database replica (zone-b)
+    kind: database
+    capacity: 100
+    failure_domain: zone-b
+    redundancy_group: db
+
+dependencies:
+  - from_id: client
+    to_id: lb-a
+    required: true
+  - from_id: client
+    to_id: lb-b
+    required: true
+  - from_id: lb-a
+    to_id: app-1
+    required: true
+  - from_id: lb-a
+    to_id: app-2
+    required: true
+  - from_id: lb-b
+    to_id: app-1
+    required: true
+  - from_id: lb-b
+    to_id: app-2
+    required: true
+  - from_id: app-1
+    to_id: db-primary
+    required: true
+  - from_id: app-2
+    to_id: db-replica
+    required: true

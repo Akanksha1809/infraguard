@@ -1,0 +1,15 @@
+name: cyclic
+components:
+  - id: a
+    name: A
+    kind: service
+  - id: b
+    name: B
+    kind: service
+dependencies:
+  - from_id: a
+    to_id: b
+    required: true
+  - from_id: b
+    to_id: a
+    required: true

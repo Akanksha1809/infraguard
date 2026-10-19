@@ -1,0 +1,34 @@
+# Every tier is a singleton: no redundancy_group anywhere. Any single component failing
+# takes down everything above it in the dependency chain — a maximally fragile design.
+name: fragile-single-instance
+description: >
+  Client -> load balancer -> one app instance -> one database. No redundancy at any tier.
+  Every component here is a single point of failure.
+
+components:
+  - id: client
+    name: Client traffic
+    kind: client
+  - id: lb
+    name: Load balancer
+    kind: load_balancer
+    capacity: 100
+  - id: app
+    name: App instance
+    kind: app
+    capacity: 100
+  - id: db
+    name: Database
+    kind: database
+    capacity: 100
+
+dependencies:
+  - from_id: client
+    to_id: lb
+    required: true
+  - from_id: lb
+    to_id: app
+    required: true
+  - from_id: app
+    to_id: db
+    required: true

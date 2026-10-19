@@ -1,0 +1,48 @@
+# The app tier is redundant (two instances), but both instances share a single database
+# with no redundancy. This demonstrates that tier-level redundancy doesn't help if a
+# downstream shared dependency is itself a single point of failure.
+name: redundant-app-shared-db-bottleneck
+description: >
+  Client -> load balancer -> two app instances (redundant) -> one shared database
+  (not redundant). Failing the database alone takes down both app instances and the
+  load balancer, despite the app tier's redundancy.
+
+components:
+  - id: client
+    name: Client traffic
+    kind: client
+  - id: lb
+    name: Load balancer
+    kind: load_balancer
+    capacity: 200
+  - id: app-1
+    name: App instance 1
+    kind: app
+    capacity: 100
+    redundancy_group: app
+  - id: app-2
+    name: App instance 2
+    kind: app
+    capacity: 100
+    redundancy_group: app
+  - id: db
+    name: Shared database
+    kind: database
+    capacity: 100
+
+dependencies:
+  - from_id: client
+    to_id: lb
+    required: true
+  - from_id: lb
+    to_id: app-1
+    required: true
+  - from_id: lb
+    to_id: app-2
+    required: true
+  - from_id: app-1
+    to_id: db
+    required: true
+  - from_id: app-2
+    to_id: db
+    required: true

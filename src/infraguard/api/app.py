@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
-from infraguard.api.v1 import change_analysis, health
+from infraguard.api.v1 import change_analysis, failure_simulation, health
 from infraguard.config import Settings, get_settings
 from infraguard.errors import InfraGuardError
 from infraguard.logging_config import configure_logging
@@ -18,6 +18,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(health.router, prefix="/api/v1")
     app.include_router(change_analysis.router, prefix="/api/v1")
+    app.include_router(failure_simulation.router, prefix="/api/v1")
 
     @app.exception_handler(InfraGuardError)
     def handle_infraguard_error(_request, exc: InfraGuardError) -> JSONResponse:

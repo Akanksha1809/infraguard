@@ -73,19 +73,27 @@ Acceptance criteria — all verified by actually running the commands:
 
 ## Milestone 3 — Failure-Domain Simulator (Module B)
 
-Acceptance criteria:
-- At least 3 example topologies committed (fragile single-instance, redundant app with
-  shared-DB bottleneck, multi-zone with real redundancy), each with a documented expected
-  result.
-- `infraguard validate-topology --file <f>` reports missing/invalid references with no
-  crashes on malformed input.
-- `infraguard simulate-failure --topology <f> --failure <id>` computes blast radius, SPOFs,
-  unreachable components, and (where capacity data exists) surviving capacity, for single and
-  multi-component failures.
-- A test proves changing topology redundancy changes the simulation result in the expected
-  direction (e.g., adding a replica removes a previously-flagged SPOF).
-- `docs/FAILURE_SIMULATION.md` states the graph/availability model and its explicit
-  limitations (no claim of real-world probability without a stated model).
+**Status: `[x]` done.**
+
+Acceptance criteria — all verified by actually running the commands:
+- [x] 3 example topologies committed under `examples/topologies/` (fragile single-instance,
+  redundant app with shared-DB bottleneck, multi-zone with real redundancy). Each was
+  actually run through `simulate-failure`: the fragile and shared-DB-bottleneck topologies
+  cascade to full outage from one failure; the multi-zone topology survives a full
+  failure-domain loss with **zero** cascaded findings — a concrete, run-verified
+  demonstration that redundancy design (not just redundancy count) determines the outcome.
+- [x] `infraguard validate-topology --file <f>` reports duplicate ids, unknown references,
+  self-loops, and cycles without crashing (`tests/unit/failure_simulation/test_validator.py`).
+- [x] `infraguard simulate-failure --topology <f> --failure <id> [--failure-domain <d>]`
+  computes blast radius, SPOFs, redundancy gaps, and surviving capacity (where capacity
+  data is complete) for both single- and multi-component/domain failures.
+- [x] `test_redundant_pair_app_instances_are_not_spofs` proves a redundant peer removes a
+  component from the SPOF list; `test_failing_entire_redundancy_group_cascades` proves
+  failing *all* peers at once does cascade — the direction changes exactly as expected.
+- [x] `docs/FAILURE_SIMULATION.md` states the exact down/redundancy/capacity model, the
+  three example topologies' actual results, and explicit limitations (no availability
+  percentage claimed anywhere).
+- [x] `make test` (123 tests, all passing) and `make lint` (ruff, clean) both pass.
 
 ## Milestone 4 — Disaster Recovery Readiness Validator (Module C, policy layer)
 

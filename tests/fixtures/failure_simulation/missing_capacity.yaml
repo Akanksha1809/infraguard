@@ -1,0 +1,12 @@
+name: missing-capacity
+components:
+  - id: app-1
+    name: App 1
+    kind: app
+    capacity: 50
+    redundancy_group: app
+  - id: app-2
+    name: App 2
+    kind: app
+    redundancy_group: app
+dependencies: []

@@ -1,0 +1,28 @@
+name: redundant-pair
+components:
+  - id: client
+    name: Client
+    kind: client
+  - id: lb
+    name: LB
+    kind: load_balancer
+  - id: app-1
+    name: App 1
+    kind: app
+    capacity: 50
+    redundancy_group: app
+  - id: app-2
+    name: App 2
+    kind: app
+    capacity: 50
+    redundancy_group: app
+dependencies:
+  - from_id: client
+    to_id: lb
+    required: true
+  - from_id: lb
+    to_id: app-1
+    required: true
+  - from_id: lb
+    to_id: app-2
+    required: true
