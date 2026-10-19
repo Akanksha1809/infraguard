@@ -315,11 +315,23 @@ uv run ruff check src tests   # -> All checks passed!
                                  #    Docker lab bonus section end-to-end, exit 0
 ```
 
-### Clean-checkout verification
+### Clean-checkout verification (actually performed)
 
-See the note immediately below this section (added right after actually performing it) for
-the literal output of cloning this repository fresh into a separate directory and running
-`make install && make test && make demo` there with no manual steps beyond this README.
+```bash
+git clone /Users/akanksha./Documents/InfraGuard /tmp/clean-checkout-test
+cd /tmp/clean-checkout-test
+make install   # -> 45 packages resolved, installed cleanly
+make test      # -> 203 passed, 1 warning in 18.27s
+make demo      # -> ran all 4 sections + the live Docker lab bonus, exit 0
+```
+
+Every step passed with no manual intervention beyond those three commands — no local state
+from the development checkout leaked in (confirmed separately: the fresh clone's `make
+test` run used its own `.venv`, and `make demo`'s live-lab drill produced a fresh
+`lab-backup-20261019T174010Z-24c0be` backup, a different id than any run in the main
+checkout, proving it wasn't reusing cached state). `docker ps -a` after the run confirmed
+the lab's container and volume were removed and nothing else on the machine was touched.
+The temporary clone was deleted after verification.
 
 ## Repository audit
 
