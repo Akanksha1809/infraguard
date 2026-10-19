@@ -1,0 +1,13 @@
+policies:
+  - workload_id: wl
+    name: First
+    rto_minutes: 60
+    rpo_minutes: 15
+    required_retention_days: 30
+    max_backup_age_hours: 24
+  - workload_id: wl
+    name: Second
+    rto_minutes: 30
+    rpo_minutes: 5
+    required_retention_days: 30
+    max_backup_age_hours: 24

@@ -1,0 +1,7 @@
+policies:
+  - workload_id: wl
+    name: Bad
+    rto_minutes: "not-a-number"
+    rpo_minutes: 15
+    required_retention_days: 30
+    max_backup_age_hours: 24

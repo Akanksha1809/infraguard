@@ -7,7 +7,7 @@ import typer
 import uvicorn
 
 from infraguard import __version__
-from infraguard.cli.commands import change_analysis, failure_simulation
+from infraguard.cli.commands import change_analysis, disaster_recovery, failure_simulation
 from infraguard.config import get_settings
 
 app = typer.Typer(
@@ -18,6 +18,7 @@ app = typer.Typer(
 
 change_analysis.register(app)
 failure_simulation.register(app)
+disaster_recovery.register(app)
 
 
 @app.command()

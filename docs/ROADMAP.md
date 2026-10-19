@@ -97,15 +97,27 @@ Acceptance criteria — all verified by actually running the commands:
 
 ## Milestone 4 — Disaster Recovery Readiness Validator (Module C, policy layer)
 
-Acceptance criteria:
-- Recovery policy schema (RTO/RPO, retention) + evidence schema (backup timestamps,
-  integrity, restore-test results) implemented and validated.
-- Readiness assessment output clearly separates: policy configured / backup evidence present
-  / integrity verified / restore tested / objectives demonstrated by measurement — a test
-  asserts these never collapse into one boolean.
-- Stale backups, missing evidence, and failed restores are each covered by a fixture + test.
-- Fixture-based (non-live) evidence is labeled as such in every report it appears in.
-- `docs/DISASTER_RECOVERY.md` written.
+**Status: `[x]` done.**
+
+Acceptance criteria — all verified by actually running the commands:
+- [x] Recovery policy schema (RTO/RPO, retention, max backup age, restore-test interval,
+  recovery dependencies) + evidence schema (backup timestamps/integrity, drill
+  duration/verification/data-loss) implemented and validated
+  (`tests/unit/disaster_recovery/test_validator.py`).
+- [x] Readiness assessment output clearly separates all five dimensions — a workload can be
+  `ready` while still carrying a HIGH `missing_recovery_dependency` finding, proving the
+  `overall` verdict is never a stand-in for the underlying findings
+  (`test_missing_recovery_dependency_flagged`).
+- [x] Stale backups, missing restore-test evidence, and failed-verification restores are
+  each covered by a dedicated fixture + test
+  (`test_stale_backup_flagged`, `test_backup_but_no_drill_is_insufficient_evidence`,
+  `test_drill_with_failed_verification_is_not_ready`).
+- [x] Fixture-based (non-live) evidence is labeled via a `fixture_based_evidence_used`
+  finding and a `uses_fixture_evidence` field on every assessment — confirmed in the
+  committed example, where every `ready` result is fixture-sourced and says so.
+- [x] `docs/DISASTER_RECOVERY.md` written, including a worked example run with actual
+  per-workload results (4 of 6 example workloads come back not ready/insufficient, exit 1).
+- [x] `make test` (158 tests, all passing) and `make lint` (ruff, clean) both pass.
 
 ## Milestone 5 — Local recovery lab (optional, Docker/Postgres)
 

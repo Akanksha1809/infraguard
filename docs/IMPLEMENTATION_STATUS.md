@@ -8,11 +8,13 @@ Last updated: 2026-10-19
 **Milestone 1 (project foundation) — done.**
 **Milestone 2 (Terraform Change Impact Analyzer) — done.**
 **Milestone 3 (Failure-Domain Simulator) — done.**
+**Milestone 4 (Disaster Recovery Readiness Validator, policy layer) — done.**
 
 The package installs, the API and CLI both run, SQLite schema creation is idempotent, and
-Modules A (Terraform change risk) and B (failure-domain simulation) are fully implemented,
-tested, and documented. Disaster Recovery (Module C) does not exist yet — that starts at
-Milestone 4.
+Modules A (Terraform change risk), B (failure-domain simulation), and C's policy/evidence
+layer (recovery readiness) are fully implemented, tested, and documented. The optional
+local Docker/Postgres recovery lab (which would produce real `source: "live_lab"` drill
+evidence instead of fixtures) does not exist yet — that starts at Milestone 5.
 
 ### What exists now
 
@@ -149,6 +151,38 @@ balancer with no client-equivalent pointing at it in that minimal fixture) can n
 SPOF, since failing it alone has no one left to affect. The `redundant_pair.yaml` fixture
 was corrected to include a `client` depending on `lb` so the test's original intent (lb has
 no redundancy, the app tier does) is actually exercised.
+
+## Milestone 4: Disaster Recovery Readiness Validator (Module C, policy layer)
+
+```
+src/infraguard/modules/disaster_recovery/
+  models.py             RecoveryPolicy, BackupEvidence, RestoreDrillRecord,
+                          ReadinessDimension (true/false/unknown), WorkloadReadiness
+  validator.py            parse_policy_document / parse_evidence_document: fatal vs. valid
+  assessor.py               assess_workload(): the 5-dimension evaluation, per workload
+  analyzer.py                 Ties it together; cross-references evidence against policy
+                                (flags "evidence for unconfigured workload")
+api/v1/disaster_recovery.py    POST /api/v1/disaster-recovery/assess-recovery
+cli/commands/disaster_recovery.py  `infraguard assess-recovery --policy ... --evidence ...`
+examples/recovery/                policy.yaml + evidence.json: 6 workloads, 6 distinct outcomes
+```
+
+### Verified commands (actually executed)
+
+```bash
+uv run infraguard assess-recovery --policy examples/recovery/policy.yaml \
+    --evidence examples/recovery/evidence.json --as-of 2026-10-19T12:00:00Z
+# -> orders-db: ready / legacy-reports: not_ready / billing-db: insufficient_evidence /
+#    analytics-db: not_ready / inventory-db: not_ready / search-index: ready
+#    10 finding(s); 4/6 workload(s) not ready.  (exit code 1)
+
+uv run pytest -q   # 158 passed
+uv run ruff check src tests   # All checks passed!
+```
+
+No bugs were caught by the test suite this milestone — the assessor's branches were
+designed against the "5 distinct dimensions, never collapsed" rule from the start, and the
+six-workload example was checked against expectations on the first real run.
 
 ## Repository audit
 

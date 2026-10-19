@@ -7,7 +7,7 @@ Milestone 7.
 
 ## Status
 
-Milestone 3 (Failure-Domain Simulator) complete — see
+Milestone 4 (Disaster Recovery Readiness Validator — policy layer) complete — see
 [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) for exactly what works today
 and [docs/ROADMAP.md](docs/ROADMAP.md) for what's next.
 
@@ -41,3 +41,15 @@ uv run infraguard simulate-failure \
 
 See [docs/FAILURE_SIMULATION.md](docs/FAILURE_SIMULATION.md) for the precise failure/
 redundancy/capacity model and all three example topologies' results.
+
+### Assess disaster-recovery readiness
+
+```bash
+uv run infraguard assess-recovery \
+    --policy examples/recovery/policy.yaml --evidence examples/recovery/evidence.json \
+    --as-of 2026-10-19T12:00:00Z
+```
+
+See [docs/DISASTER_RECOVERY.md](docs/DISASTER_RECOVERY.md) — the central rule is that a
+backup's existence is never treated as evidence it's recoverable; six example workloads
+each demonstrate one distinct readiness outcome.

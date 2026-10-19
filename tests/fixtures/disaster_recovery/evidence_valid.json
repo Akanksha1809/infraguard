@@ -1,0 +1,29 @@
+{
+  "backups": [
+    {
+      "workload_id": "wl",
+      "backup_id": "b1",
+      "taken_at": "2026-10-19T06:00:00Z",
+      "retention_days": 30,
+      "integrity_check_passed": true
+    },
+    {
+      "workload_id": "orphan-workload",
+      "backup_id": "b-orphan",
+      "taken_at": "2026-10-19T06:00:00Z",
+      "retention_days": 30,
+      "integrity_check_passed": true
+    }
+  ],
+  "drills": [
+    {
+      "workload_id": "wl",
+      "drill_id": "d1",
+      "source": "fixture",
+      "performed_at": "2026-09-25T00:00:00Z",
+      "restore_duration_minutes": 42,
+      "verification_passed": true,
+      "data_loss_minutes": 10
+    }
+  ]
+}

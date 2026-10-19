@@ -1,0 +1,88 @@
+{
+  "backups": [
+    {
+      "workload_id": "orders-db",
+      "backup_id": "orders-20261019-0600",
+      "taken_at": "2026-10-19T06:00:00Z",
+      "retention_days": 30,
+      "integrity_check_passed": true,
+      "integrity_checked_at": "2026-10-19T06:15:00Z"
+    },
+    {
+      "workload_id": "billing-db",
+      "backup_id": "billing-20261019-0800",
+      "taken_at": "2026-10-19T08:00:00Z",
+      "retention_days": 30,
+      "integrity_check_passed": true,
+      "integrity_checked_at": "2026-10-19T08:10:00Z"
+    },
+    {
+      "workload_id": "analytics-db",
+      "backup_id": "analytics-20261018-1200",
+      "taken_at": "2026-10-18T12:00:00Z",
+      "retention_days": 14,
+      "integrity_check_passed": true
+    },
+    {
+      "workload_id": "inventory-db",
+      "backup_id": "inventory-20261019-0300",
+      "taken_at": "2026-10-19T03:00:00Z",
+      "retention_days": 30,
+      "integrity_check_passed": true
+    },
+    {
+      "workload_id": "search-index",
+      "backup_id": "search-20261019-0500",
+      "taken_at": "2026-10-19T05:00:00Z",
+      "retention_days": 14,
+      "integrity_check_passed": true
+    }
+  ],
+  "drills": [
+    {
+      "workload_id": "orders-db",
+      "drill_id": "orders-drill-2026-09-25",
+      "source": "fixture",
+      "performed_at": "2026-09-25T00:00:00Z",
+      "backup_id": "orders-20261019-0600",
+      "restore_duration_minutes": 42,
+      "verification_passed": true,
+      "verification_method": "row count + checksum match against source",
+      "data_loss_minutes": 10
+    },
+    {
+      "workload_id": "analytics-db",
+      "drill_id": "analytics-drill-2026-10-01",
+      "source": "fixture",
+      "performed_at": "2026-10-01T00:00:00Z",
+      "backup_id": "analytics-20261018-1200",
+      "restore_duration_minutes": 120,
+      "verification_passed": false,
+      "verification_method": "checksum comparison",
+      "data_loss_minutes": 30,
+      "notes": "Restored dataset failed checksum verification against the source; restore was not usable."
+    },
+    {
+      "workload_id": "inventory-db",
+      "drill_id": "inventory-drill-2026-10-10",
+      "source": "fixture",
+      "performed_at": "2026-10-10T00:00:00Z",
+      "backup_id": "inventory-20261019-0300",
+      "restore_duration_minutes": 55,
+      "verification_passed": true,
+      "verification_method": "row count match",
+      "data_loss_minutes": 20
+    },
+    {
+      "workload_id": "search-index",
+      "drill_id": "search-drill-2026-10-05",
+      "source": "fixture",
+      "performed_at": "2026-10-05T00:00:00Z",
+      "backup_id": "search-20261019-0500",
+      "restore_duration_minutes": 20,
+      "verification_passed": true,
+      "verification_method": "document count match",
+      "data_loss_minutes": 5
+    }
+  ]
+}

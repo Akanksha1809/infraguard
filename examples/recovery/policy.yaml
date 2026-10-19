@@ -1,0 +1,67 @@
+# Six workloads, each illustrating one distinct readiness outcome. Run with:
+#   infraguard assess-recovery --policy examples/recovery/policy.yaml \
+#       --evidence examples/recovery/evidence.json --as-of 2026-10-19T12:00:00Z
+# --as-of pins evaluation to the same moment this evidence was authored against, so the
+# demo's "stale" / "not stale" results stay reproducible regardless of when it's re-run.
+
+policies:
+  - workload_id: orders-db
+    name: Orders Database
+    rto_minutes: 60
+    rpo_minutes: 15
+    required_retention_days: 30
+    max_backup_age_hours: 24
+    required_integrity_check: true
+    required_restore_test_interval_days: 90
+    # Fully ready: recent integrity-checked backup + a recent verified drill that met
+    # both RTO and RPO.
+
+  - workload_id: legacy-reports
+    name: Legacy Reporting Service
+    rto_minutes: 240
+    rpo_minutes: 1440
+    required_retention_days: 14
+    max_backup_age_hours: 48
+    # No backup evidence at all exists for this workload (see evidence.json) -> not_ready.
+
+  - workload_id: billing-db
+    name: Billing Database
+    rto_minutes: 30
+    rpo_minutes: 5
+    required_retention_days: 30
+    max_backup_age_hours: 24
+    required_integrity_check: true
+    # A backup exists and passed integrity, but no restore has ever been tested ->
+    # insufficient_evidence. This is the central point of this module: a backup's
+    # existence is never evidence that it is recoverable.
+
+  - workload_id: analytics-db
+    name: Analytics Database
+    rto_minutes: 120
+    rpo_minutes: 60
+    required_retention_days: 14
+    max_backup_age_hours: 24
+    required_integrity_check: true
+    # A restore drill was run, but its verification explicitly failed -> not_ready.
+
+  - workload_id: inventory-db
+    name: Inventory Database
+    rto_minutes: 30
+    rpo_minutes: 5
+    required_retention_days: 30
+    max_backup_age_hours: 24
+    required_integrity_check: true
+    # A verified drill exists, but its *measured* duration and data loss exceed this
+    # tighter RTO/RPO -> not_ready, even though the restore itself "succeeded".
+
+  - workload_id: search-index
+    name: Search Index Service
+    rto_minutes: 60
+    rpo_minutes: 30
+    required_retention_days: 14
+    max_backup_age_hours: 24
+    required_integrity_check: true
+    depends_on: [missing-service]
+    # Otherwise fully ready, but declares a recovery dependency on a workload with no
+    # policy of its own -> a missing_recovery_dependency finding, isolated from every
+    # other dimension.

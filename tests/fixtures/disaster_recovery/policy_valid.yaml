@@ -1,0 +1,9 @@
+policies:
+  - workload_id: wl
+    name: Test Workload
+    rto_minutes: 60
+    rpo_minutes: 15
+    required_retention_days: 30
+    max_backup_age_hours: 24
+    required_integrity_check: true
+    required_restore_test_interval_days: 90
