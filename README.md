@@ -7,7 +7,7 @@ Milestone 7.
 
 ## Status
 
-Milestone 4 (Disaster Recovery Readiness Validator — policy layer) complete — see
+Milestone 5 (local Docker/Postgres recovery lab) complete — see
 [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) for exactly what works today
 and [docs/ROADMAP.md](docs/ROADMAP.md) for what's next.
 
@@ -53,3 +53,17 @@ uv run infraguard assess-recovery \
 See [docs/DISASTER_RECOVERY.md](docs/DISASTER_RECOVERY.md) — the central rule is that a
 backup's existence is never treated as evidence it's recoverable; six example workloads
 each demonstrate one distinct readiness outcome.
+
+### Run a real local recovery drill (optional, needs Docker)
+
+```bash
+uv run infraguard recovery-lab start
+uv run infraguard recovery-lab drill --workload-id orders-db \
+    --policy examples/recovery/policy.yaml --evidence-out live-evidence.json
+uv run infraguard assess-recovery --policy examples/recovery/policy.yaml --evidence live-evidence.json
+uv run infraguard recovery-lab stop
+```
+
+This actually backs up, truncates, restores, and checksum-verifies a disposable Postgres
+database in Docker — see docs/DISASTER_RECOVERY.md's "Local recovery lab" section for the
+safety scoping and what was verified by actually running it.

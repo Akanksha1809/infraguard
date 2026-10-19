@@ -1,11 +1,10 @@
-# Module C — Disaster Recovery Readiness Validator (policy layer)
+# Module C — Disaster Recovery Readiness Validator
 
-This document covers the policy/evidence/assessment layer built in Milestone 4. The
-optional local Docker/Postgres recovery lab that can *produce* real (`source: "live_lab"`)
-drill evidence instead of fixture records is Milestone 5 — see
-[docs/ROADMAP.md](ROADMAP.md). Everything here works today with no Docker dependency,
-using fixture-based evidence, exactly as the project brief requires when Docker/Postgres
-is unavailable.
+This document covers both the policy/evidence/assessment layer (Milestone 4) and the
+optional local Docker/Postgres recovery lab that *produces* real evidence instead of
+fixture records (Milestone 5). Everything in the "Policy layer" section works with zero
+Docker dependency; the "Local recovery lab" section is additive and entirely optional —
+`assess-recovery` never requires it.
 
 ## The central rule
 
@@ -140,3 +139,91 @@ actually produces:
 - `depends_on` is a flat, one-level declaration (this workload depends on that one); it is
   not a full dependency graph like Module B's topology model.
 - No numeric aggregate health score is produced anywhere in this module's output.
+
+## Local recovery lab (Milestone 5)
+
+An isolated, disposable Postgres container that actually performs a backup → data-loss →
+restore → verify cycle, producing real `source: "live_lab"` evidence instead of
+hand-written fixtures — the only thing that distinguishes "we believe this would work" from
+"we just watched it work."
+
+### Safety, as code, not just policy
+
+- Every Docker Compose / `docker exec` call is hard-scoped to a fixed project name
+  (`infraguard-recovery-lab`), fixed compose file, and fixed container name
+  (`infraguard-recovery-lab-postgres`) — see
+  [lab/constants.py](../src/infraguard/modules/disaster_recovery/lab/constants.py). None of
+  this is a CLI flag or environment variable, so there is no way to point the lab at an
+  arbitrary container, volume, or database.
+- The "controlled data-loss scenario" is exactly one SQL statement —
+  `TRUNCATE TABLE orders;` — against the lab's own database inside the lab's own
+  container. Nothing else is ever touched.
+- Teardown (`infraguard recovery-lab stop`, or `lab.workflow.stop_lab()`) runs
+  `docker compose -p infraguard-recovery-lab down -v --remove-orphans`, which only removes
+  resources carrying that project name. **Verified on this project's own dev machine**,
+  which has several unrelated pre-existing containers from other projects: running the full
+  drill and then `stop` left every other container untouched and removed exactly the lab's
+  own container and volume (see the commit history for the actual `docker ps` output this
+  was checked against).
+- `pg_dump`/`pg_restore`/`psql` run **inside the container** via `docker exec`, so the host
+  needs no local PostgreSQL client install — consistent with this machine having none (see
+  Milestone 0's audit in [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)).
+
+### Workflow
+
+```bash
+infraguard recovery-lab start      # 1. start the isolated container
+infraguard recovery-lab seed       # 2. populate a deterministic 50-row dataset
+infraguard recovery-lab drill \     # 3-9, in one command:
+    --workload-id orders-db \       #   backup -> record metadata -> induce data loss ->
+    --policy examples/recovery/policy.yaml \   #   restore -> verify -> record duration/outcome
+    --evidence-out live-evidence.json
+infraguard assess-recovery \        # evaluate the measured result against RTO/RPO
+    --policy examples/recovery/policy.yaml --evidence live-evidence.json
+infraguard recovery-lab stop       # 10. tear down — only this lab's own resources
+```
+
+`drill` starts the lab itself if it isn't already running (idempotent), seeds it, and runs
+the entire backup/data-loss/restore/verify cycle in one step; `start`/`stop`/`seed`/`status`
+exist separately for manual inspection. `drill` never calls `stop` itself — teardown stays
+a separate, explicit action.
+
+### What "verified" means here
+
+The dataset is a deterministic 50-row table (no randomness, so re-seeding always produces
+the same fingerprint). Verification compares, before the data loss and after the restore,
+a single SQL query's `(row_count, SUM(amount), order-sensitive md5 digest-of-every-row)` —
+any missing row, extra row, or altered value changes the digest. Backup "integrity" at this
+milestone means `pg_dump` exited cleanly and produced a non-empty file — a structural check,
+not a full archive-validity scan (`pg_restore --list`); stated as a limitation, not hidden.
+
+### Actually run, not just designed
+
+This workflow was executed for real against this machine's Docker/Colima daemon while
+building this milestone: `start` → `drill` (backup 2219 bytes, restore verification
+**PASSED**, checksum digest matched exactly) → the resulting `live_lab` evidence fed into
+`assess-recovery`, which correctly reported `orders-db: ready` with
+`uses_fixture_evidence: False` and zero findings — then `stop`, confirmed via `docker ps`
+to have removed only the lab's own container and volume, leaving every pre-existing
+container on the machine untouched.
+
+### Test coverage
+
+`tests/unit/disaster_recovery/lab/` covers the pure-Python logic (deterministic dataset
+generation, checksum parsing, the `docker compose`/`docker-compose` fallback probe, and the
+availability check) with no Docker required. `tests/integration/test_recovery_lab_live.py`
+runs the real thing — start, reseed-is-deterministic, induce-data-loss-empties-the-table,
+full-drill-round-trips-data, stop-removes-the-container — and is skipped, with an explicit
+reason, on a machine without a working Docker daemon, per the project's "clearly distinguish
+optional tests that cannot run due to missing local tools from tests that passed" rule.
+
+### Not implemented (stated, not hidden)
+
+- Only a `TRUNCATE`-based data-loss scenario is implemented ("controlled data-loss"); a
+  full database-replacement scenario (drop + recreate the database) is a documented
+  possible extension, not silently assumed equivalent.
+- No API endpoints trigger the lab — it is CLI-only. Driving a multi-second Docker
+  workflow from an HTTP request would need background job handling (status polling, etc.)
+  that is out of scope for what this milestone needs; `assess-recovery` (which *consumes*
+  the evidence this lab produces) is fully available over the API.
+- Backup integrity is a structural check (`pg_dump` succeeded), not a full archive scan.

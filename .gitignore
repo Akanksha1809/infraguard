@@ -12,3 +12,6 @@ htmlcov/
 *.sqlite3
 .env
 uv.lock.bak
+infraguard-reports/
+infraguard-lab-backups/
+*.dump

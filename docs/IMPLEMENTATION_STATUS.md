@@ -9,12 +9,13 @@ Last updated: 2026-10-19
 **Milestone 2 (Terraform Change Impact Analyzer) — done.**
 **Milestone 3 (Failure-Domain Simulator) — done.**
 **Milestone 4 (Disaster Recovery Readiness Validator, policy layer) — done.**
+**Milestone 5 (local Docker/Postgres recovery lab) — done.**
 
 The package installs, the API and CLI both run, SQLite schema creation is idempotent, and
-Modules A (Terraform change risk), B (failure-domain simulation), and C's policy/evidence
-layer (recovery readiness) are fully implemented, tested, and documented. The optional
-local Docker/Postgres recovery lab (which would produce real `source: "live_lab"` drill
-evidence instead of fixtures) does not exist yet — that starts at Milestone 5.
+all three modules (A: Terraform change risk, B: failure-domain simulation, C: recovery
+readiness including a real local Docker/Postgres drill lab) are fully implemented, tested,
+and documented. Platform integration (shared SQLite history/audit across all modules) and
+portfolio polish are Milestones 6-7.
 
 ### What exists now
 
@@ -183,6 +184,51 @@ uv run ruff check src tests   # All checks passed!
 No bugs were caught by the test suite this milestone — the assessor's branches were
 designed against the "5 distinct dimensions, never collapsed" rule from the start, and the
 six-workload example was checked against expectations on the first real run.
+
+## Milestone 5: Local Docker/Postgres recovery lab
+
+```
+docker/recovery_lab/docker-compose.yml   Single Postgres service, lab-only credentials
+src/infraguard/modules/disaster_recovery/lab/
+  constants.py        Fixed project/container/db names — not configurable, by design
+  compose.py            docker compose / docker-compose fallback probe; up/down/exec wrappers
+  availability.py          check_lab_available(): explains the gap when Docker isn't usable
+  dataset.py                Deterministic 50-row dataset + SQL-side checksum query
+  workflow.py                start/seed/backup/induce_data_loss/restore/run_full_drill
+cli/commands/recovery_lab.py   `infraguard recovery-lab start|seed|drill|status|stop`
+tests/integration/test_recovery_lab_live.py   Real Docker tests, skip (not fail) if absent
+```
+
+### Verified commands (actually executed, against this machine's real Docker/Colima daemon)
+
+```bash
+uv run infraguard recovery-lab status
+# -> available: yes; running: no
+
+uv run infraguard recovery-lab drill --workload-id orders-db \
+    --policy examples/recovery/policy.yaml --evidence-out /tmp/live-evidence.json \
+    --backups-dir /tmp/live-backups
+# -> backup: lab-backup-20261019T170252Z-39d355 (2219 bytes)
+#    restore verification: PASSED in 0.0017 min (RTO 60.0 min); data_loss=0.0 min (RPO 15.0 min)
+
+uv run infraguard assess-recovery --policy examples/recovery/policy.yaml \
+    --evidence /tmp/live-evidence.json --as-of "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+# -> orders-db: ready, uses_fixture_evidence: False, zero findings for orders-db
+
+uv run infraguard recovery-lab stop
+# -> lab stopped; its container and volume were removed.
+# docker ps -a / docker volume ls confirmed: zero infraguard-* resources remain,
+# and every one of this machine's several unrelated pre-existing containers
+# (kubesentinel-control-plane, ai-platform-engineer-*, assorted k8s pods, etc.) untouched.
+
+uv run pytest -q   # 180 passed (includes 5 live-Docker integration tests), ~18s
+uv run ruff check src tests   # All checks passed!
+```
+
+No bugs were caught by the test suite this milestone; the one real design correction made
+during development was choosing to run `pg_dump`/`pg_restore`/`psql` via `docker exec`
+inside the container rather than requiring a local PostgreSQL client — confirmed necessary
+since this machine has no local `psql` at all (see Milestone 0's audit above).
 
 ## Repository audit
 

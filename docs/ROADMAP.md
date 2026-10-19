@@ -121,17 +121,29 @@ Acceptance criteria — all verified by actually running the commands:
 
 ## Milestone 5 — Local recovery lab (optional, Docker/Postgres)
 
-Acceptance criteria:
-- `docker compose` (with documented `docker-compose` fallback — see
-  [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)) brings up an isolated, InfraGuard-
-  prefixed Postgres instance with no effect on any pre-existing container on the machine.
-- End-to-end script: start lab → seed deterministic data → backup → simulate data loss →
-  restore → verify checksums → record measured duration → evaluate against RTO/RPO → tear
-  down only the named lab resources.
-- A safety test asserts the teardown path only ever targets resources carrying the lab's
-  own project/name prefix.
-- If Docker is unavailable, `make test` still passes in full by skipping (and clearly
-  labeling as skipped, not silently passing) only the Docker-dependent tests.
+**Status: `[x]` done.**
+
+Acceptance criteria — all verified by actually running the commands:
+- [x] `docker compose` (with documented `docker-compose` fallback, confirmed working via
+  `compose_base_command()`'s probe) brings up an isolated, `infraguard-recovery-lab`-
+  prefixed Postgres instance. Verified on this project's own dev machine, which has several
+  unrelated pre-existing containers (from other projects) at all times: running the full
+  drill then `stop` left every one of them untouched and removed exactly the lab's own
+  container + volume (checked via `docker ps -a` / `docker volume ls` before and after).
+- [x] End-to-end workflow actually run, not just scripted: `start` → `seed` (50
+  deterministic rows) → `drill` (pg_dump backup, 2219 bytes → `TRUNCATE` the lab's own
+  table → `pg_restore` → SQL-side checksum comparison) → fed the resulting `live_lab`
+  evidence into `assess-recovery`, which reported `orders-db: ready`,
+  `uses_fixture_evidence: False`, zero findings → `stop`.
+- [x] Safety is enforced in code, not just tested: every Compose/`docker exec` call is
+  hard-scoped to a fixed project name, compose file, and container name with no CLI flag or
+  env var able to override them (`lab/constants.py`).
+- [x] `tests/integration/test_recovery_lab_live.py` skips with an explicit reason when
+  Docker is unavailable (`pytest.mark.skipif` on a real availability check), and actually
+  runs for real on this machine: start/reseed-determinism/data-loss/full-drill/teardown, 5
+  tests, all passing against a genuine container.
+- [x] `make test` (180 tests, all passing, ~18s including the live Docker tests) and
+  `make lint` (ruff, clean) both pass.
 
 ## Milestone 6 — Platform integration
 

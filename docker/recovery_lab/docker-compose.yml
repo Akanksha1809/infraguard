@@ -1,0 +1,30 @@
+# Isolated, disposable Postgres for the local disaster-recovery drill lab.
+#
+# This file is ONLY ever invoked by InfraGuard with an explicit, hard-coded Compose
+# project name (see lab/constants.py: PROJECT_NAME = "infraguard-recovery-lab"), so every
+# container, volume, and network it creates is name-prefixed with that project name and
+# nothing else on the host is ever touched. `docker compose -p infraguard-recovery-lab down
+# -v` removes exactly these resources and nothing more.
+#
+# This is a throwaway lab database for drills, never a target for real data.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: infraguard-recovery-lab-postgres
+    environment:
+      POSTGRES_USER: infraguard
+      POSTGRES_PASSWORD: infraguard-lab-only
+      POSTGRES_DB: infraguard_lab
+    ports:
+      - "${INFRAGUARD_LAB_PG_PORT:-15432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U infraguard -d infraguard_lab"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+volumes:
+  pgdata:
