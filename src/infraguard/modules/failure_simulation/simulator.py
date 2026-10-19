@@ -60,7 +60,7 @@ def simulate(topology: Topology, scenario: FailureScenario) -> SimulationResult:
             if component.id in down:
                 continue
             for target_id in required_targets_by_source.get(component.id, []):
-                target_key = group_key_by_id.get(target_id)
+                target_key = group_key_by_id.get(target_id, target_id)
                 members = groups.get(target_key, [target_id])
                 if members and all(m in down for m in members):
                     down.add(component.id)

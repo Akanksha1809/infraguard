@@ -1,0 +1,230 @@
+{
+  "schema_version": 1,
+  "run_id": "67374c1aff464f31a164a1430e52d001",
+  "module": "disaster_recovery",
+  "created_at": "2026-10-19T17:35:36.819622Z",
+  "inputs": {
+    "source_policy": "examples/recovery/policy.yaml",
+    "source_evidence": "examples/recovery/evidence.json",
+    "as_of": "2026-10-19T12:00:00+00:00",
+    "workload_count": 6,
+    "readiness": [
+      {
+        "workload_id": "orders-db",
+        "policy_configured": true,
+        "backup_evidence_present": true,
+        "backup_integrity_verified": "true",
+        "restore_successfully_tested": "true",
+        "recovery_objectives_demonstrated": "true",
+        "overall": "ready",
+        "uses_fixture_evidence": true
+      },
+      {
+        "workload_id": "legacy-reports",
+        "policy_configured": true,
+        "backup_evidence_present": false,
+        "backup_integrity_verified": "unknown",
+        "restore_successfully_tested": "unknown",
+        "recovery_objectives_demonstrated": "unknown",
+        "overall": "not_ready",
+        "uses_fixture_evidence": false
+      },
+      {
+        "workload_id": "billing-db",
+        "policy_configured": true,
+        "backup_evidence_present": true,
+        "backup_integrity_verified": "true",
+        "restore_successfully_tested": "unknown",
+        "recovery_objectives_demonstrated": "unknown",
+        "overall": "insufficient_evidence",
+        "uses_fixture_evidence": false
+      },
+      {
+        "workload_id": "analytics-db",
+        "policy_configured": true,
+        "backup_evidence_present": true,
+        "backup_integrity_verified": "true",
+        "restore_successfully_tested": "false",
+        "recovery_objectives_demonstrated": "unknown",
+        "overall": "not_ready",
+        "uses_fixture_evidence": true
+      },
+      {
+        "workload_id": "inventory-db",
+        "policy_configured": true,
+        "backup_evidence_present": true,
+        "backup_integrity_verified": "true",
+        "restore_successfully_tested": "true",
+        "recovery_objectives_demonstrated": "false",
+        "overall": "not_ready",
+        "uses_fixture_evidence": true
+      },
+      {
+        "workload_id": "search-index",
+        "policy_configured": true,
+        "backup_evidence_present": true,
+        "backup_integrity_verified": "true",
+        "restore_successfully_tested": "true",
+        "recovery_objectives_demonstrated": "true",
+        "overall": "ready",
+        "uses_fixture_evidence": true
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "fefa1e4bd595",
+      "rule_id": "fixture_based_evidence_used",
+      "severity": "low",
+      "confidence": "confirmed",
+      "summary": "'orders-db' readiness relies on fixture-based drill evidence",
+      "detail": "At least one restore drill behind this assessment has source == 'fixture': supplied as a record, not produced by an actual restore. Do not treat this as a live-validated result.",
+      "affected_resources": [
+        "orders-db"
+      ],
+      "evidence": {},
+      "remediation": null
+    },
+    {
+      "id": "435e8b0fe6fa",
+      "rule_id": "no_backup_evidence",
+      "severity": "critical",
+      "confidence": "confirmed",
+      "summary": "No backup evidence exists for 'legacy-reports'",
+      "detail": "No BackupEvidence record references this workload. A recovery policy with no backup evidence behind it is not a safety net.",
+      "affected_resources": [
+        "legacy-reports"
+      ],
+      "evidence": {},
+      "remediation": "Record backup evidence (timestamp, retention, integrity check)."
+    },
+    {
+      "id": "2ed7dfc891b2",
+      "rule_id": "no_restore_test",
+      "severity": "critical",
+      "confidence": "confirmed",
+      "summary": "No restore has ever been tested for 'legacy-reports'",
+      "detail": "A backup's existence is never evidence that it can be restored. No restore drill record exists for this workload at all.",
+      "affected_resources": [
+        "legacy-reports"
+      ],
+      "evidence": {},
+      "remediation": "Run a restore drill and record the result."
+    },
+    {
+      "id": "bb5c9c05c8fd",
+      "rule_id": "no_restore_test",
+      "severity": "critical",
+      "confidence": "confirmed",
+      "summary": "No restore has ever been tested for 'billing-db'",
+      "detail": "A backup's existence is never evidence that it can be restored. No restore drill record exists for this workload at all.",
+      "affected_resources": [
+        "billing-db"
+      ],
+      "evidence": {},
+      "remediation": "Run a restore drill and record the result."
+    },
+    {
+      "id": "071fecfeaba9",
+      "rule_id": "restore_test_failed_verification",
+      "severity": "critical",
+      "confidence": "confirmed",
+      "summary": "No successfully-verified restore test exists for 'analytics-db'",
+      "detail": "One or more restore drills were recorded, but none has verification_passed == true.",
+      "affected_resources": [
+        "analytics-db"
+      ],
+      "evidence": {},
+      "remediation": null
+    },
+    {
+      "id": "debcd6dc357c",
+      "rule_id": "fixture_based_evidence_used",
+      "severity": "low",
+      "confidence": "confirmed",
+      "summary": "'analytics-db' readiness relies on fixture-based drill evidence",
+      "detail": "At least one restore drill behind this assessment has source == 'fixture': supplied as a record, not produced by an actual restore. Do not treat this as a live-validated result.",
+      "affected_resources": [
+        "analytics-db"
+      ],
+      "evidence": {},
+      "remediation": null
+    },
+    {
+      "id": "0a3c49815a5c",
+      "rule_id": "recovery_objective_not_met",
+      "severity": "critical",
+      "confidence": "confirmed",
+      "summary": "Measured recovery for 'inventory-db' does not meet its RTO/RPO",
+      "detail": "Drill 'inventory-drill-2026-10-10' measured restore_duration_minutes=55.0 (RTO 30.0), data_loss_minutes=20.0 (RPO 5.0).",
+      "affected_resources": [
+        "inventory-db"
+      ],
+      "evidence": {
+        "drill_id": "inventory-drill-2026-10-10",
+        "measured_duration_minutes": 55.0,
+        "rto_minutes": 30.0,
+        "rto_met": false,
+        "measured_data_loss_minutes": 20.0,
+        "rpo_minutes": 5.0,
+        "rpo_met": false
+      },
+      "remediation": null
+    },
+    {
+      "id": "07ae90f83f48",
+      "rule_id": "fixture_based_evidence_used",
+      "severity": "low",
+      "confidence": "confirmed",
+      "summary": "'inventory-db' readiness relies on fixture-based drill evidence",
+      "detail": "At least one restore drill behind this assessment has source == 'fixture': supplied as a record, not produced by an actual restore. Do not treat this as a live-validated result.",
+      "affected_resources": [
+        "inventory-db"
+      ],
+      "evidence": {},
+      "remediation": null
+    },
+    {
+      "id": "f6399715c170",
+      "rule_id": "missing_recovery_dependency",
+      "severity": "high",
+      "confidence": "confirmed",
+      "summary": "'search-index' depends on 'missing-service', which has no recovery policy",
+      "detail": "'search-index' declares a recovery dependency on 'missing-service', but no RecoveryPolicy exists for it — 'missing-service's own recoverability can't be assessed, so 'search-index' cannot be fully trusted to recover either.",
+      "affected_resources": [
+        "search-index",
+        "missing-service"
+      ],
+      "evidence": {},
+      "remediation": "Define a recovery policy and evidence for 'missing-service'."
+    },
+    {
+      "id": "c2f7f2de7f6a",
+      "rule_id": "fixture_based_evidence_used",
+      "severity": "low",
+      "confidence": "confirmed",
+      "summary": "'search-index' readiness relies on fixture-based drill evidence",
+      "detail": "At least one restore drill behind this assessment has source == 'fixture': supplied as a record, not produced by an actual restore. Do not treat this as a live-validated result.",
+      "affected_resources": [
+        "search-index"
+      ],
+      "evidence": {},
+      "remediation": null
+    }
+  ],
+  "assumptions": [
+    "A backup's existence is never treated as evidence that it is recoverable — integrity verification and a successfully-verified restore test are tracked as separate facts.",
+    "A dimension (integrity verified / restore tested / objectives demonstrated) is only ever TRUE or FALSE when there is direct evidence for it; otherwise it is UNKNOWN, never defaulted to either.",
+    "'Most recent' backup/drill is determined by the latest 'taken_at'/'performed_at' timestamp in the supplied evidence, compared against the 'as_of' time (default: now)."
+  ],
+  "limitations": [
+    "This assessment is only as complete as the supplied evidence document — it cannot detect a backup or drill that happened but was never recorded.",
+    "Fixture-based drill evidence (source: 'fixture') is clearly labeled wherever it contributes to a 'ready' result, but is not itself a live-validated restore — see Milestone 5's local recovery lab for that.",
+    "No overall numeric health score is produced; 'overall' is a three-way outcome shown alongside every individual finding, never a substitute for them."
+  ],
+  "policy_decision": null,
+  "next_steps": [
+    "3 workload(s) are NOT READY: legacy-reports, analytics-db, inventory-db.",
+    "1 workload(s) have insufficient evidence to assess: billing-db."
+  ]
+}

@@ -5,14 +5,14 @@ and verified by running the stated commands/tests).
 
 ## Milestone 0 — Repository and environment audit
 
-**Status: `[~]` in progress — stopped here for review, per instructions.**
+**Status: `[x]` done.**
 
 Acceptance criteria:
 - [x] Directory, git state, and local tooling inspected and recorded
   ([IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)).
 - [x] Proposed architecture documented ([ARCHITECTURE.md](ARCHITECTURE.md)).
 - [x] This roadmap exists with acceptance criteria for every milestone.
-- [ ] User has reviewed and approved the plan before Milestone 1 begins.
+- [x] User reviewed and approved the plan before Milestone 1 began.
 
 ## Milestone 1 — Project foundation
 
@@ -170,13 +170,26 @@ Acceptance criteria — all verified by actually running the commands:
 
 ## Milestone 7 — Portfolio polish
 
-Acceptance criteria:
-- `make demo` runs a scripted, reproducible tour of all three modules from a clean checkout.
-- Full docs set complete: README, ARCHITECTURE, THREAT_MODEL, CHANGE_ANALYSIS,
-  FAILURE_SIMULATION, DISASTER_RECOVERY, POLICY_REFERENCE, TESTING, DESIGN_DECISIONS,
-  DEMO_SCRIPT, ROADMAP (this file, updated).
-- A reviewer can clone, `uv sync`, `make test`, `make demo` with no manual steps beyond what
-  the README states, and no external account/API key at any point.
+**Status: `[x]` done.**
+
+Acceptance criteria — all verified by actually running the commands:
+- [x] `make demo` (`scripts/demo.sh`) runs a scripted tour of all three modules plus
+  platform integration (run history, policy inspection) against the committed examples,
+  and the live Docker lab when available — run for real during this milestone, exit 0.
+- [x] Full docs set complete: README (rewritten with explicit Problem/Features/
+  Architecture/Quickstart/Demo/Limitations sections), ARCHITECTURE, THREAT_MODEL (new),
+  CHANGE_ANALYSIS, FAILURE_SIMULATION, DISASTER_RECOVERY, POLICY_REFERENCE, TESTING (new),
+  DESIGN_DECISIONS (new), DEMO_SCRIPT (new), ROADMAP (this file).
+- [x] A reviewer can clone, `make install`, `make test`, `make demo` with no manual steps
+  beyond the README — verified with an actual fresh `git clone` of this repository into a
+  separate directory and running that exact sequence there (see
+  [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)'s Milestone 7 section for the
+  literal output).
+- [x] A static type checker (mypy) was added and made clean (`make typecheck`), per
+  section 8's "choose a reasonable lint/type-check setup" — it found and fixed 9 real
+  issues on its first run, not merely configured and ignored.
+- [x] Committed sample outputs for all three modules under `examples/sample_outputs/`, so
+  a reviewer can read expected results without running anything.
 
 ## Not planned unless a real need appears
 

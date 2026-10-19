@@ -46,12 +46,12 @@ def _redact(value: Any, marks: Any, prefix: str, redacted_paths: list[str]) -> A
 
     if isinstance(value, list):
         marks_list = marks if isinstance(marks, list) else []
-        result = []
+        list_result = []
         for i, child_value in enumerate(value):
             child_prefix = f"{prefix}[{i}]"
             child_marks = marks_list[i] if i < len(marks_list) else False
-            result.append(_redact(child_value, child_marks, child_prefix, redacted_paths))
-        return result
+            list_result.append(_redact(child_value, child_marks, child_prefix, redacted_paths))
+        return list_result
 
     return value
 

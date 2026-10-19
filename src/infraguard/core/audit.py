@@ -24,7 +24,8 @@ def record_event(
             (created_at, event_type, module, json.dumps(payload, default=str)),
         )
         conn.commit()
-        return int(cursor.lastrowid)
+        assert cursor.lastrowid is not None  # always set after an INSERT into a rowid table
+        return cursor.lastrowid
 
 
 def list_events(db_path: Path, *, limit: int = 100) -> list[dict[str, Any]]:

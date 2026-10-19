@@ -1,4 +1,4 @@
-.PHONY: install lint test demo
+.PHONY: install lint typecheck test demo
 
 install:
 	uv sync --extra dev
@@ -6,9 +6,11 @@ install:
 lint:
 	uv run ruff check src tests
 
+typecheck:
+	uv run mypy
+
 test:
 	uv run pytest
 
 demo:
-	@echo "The scripted demo lands in Milestone 7 (see docs/ROADMAP.md)."
-	@echo "For now: make install && make test, or uv run infraguard --help"
+	./scripts/demo.sh

@@ -23,17 +23,17 @@ class Severity(StrEnum):
     def rank(self) -> int:
         return {"low": 0, "medium": 1, "high": 2, "critical": 3}[self.value]
 
-    def __ge__(self, other: "Severity") -> bool:
-        return self.rank >= other.rank
+    def __ge__(self, other: str) -> bool:
+        return self.rank >= Severity(other).rank
 
-    def __gt__(self, other: "Severity") -> bool:
-        return self.rank > other.rank
+    def __gt__(self, other: str) -> bool:
+        return self.rank > Severity(other).rank
 
-    def __le__(self, other: "Severity") -> bool:
-        return self.rank <= other.rank
+    def __le__(self, other: str) -> bool:
+        return self.rank <= Severity(other).rank
 
-    def __lt__(self, other: "Severity") -> bool:
-        return self.rank < other.rank
+    def __lt__(self, other: str) -> bool:
+        return self.rank < Severity(other).rank
 
 
 class Confidence(StrEnum):

@@ -11,13 +11,14 @@ Last updated: 2026-10-19
 **Milestone 4 (Disaster Recovery Readiness Validator, policy layer) — done.**
 **Milestone 5 (local Docker/Postgres recovery lab) — done.**
 **Milestone 6 (platform integration) — done.**
+**Milestone 7 (portfolio polish) — done.**
 
-The package installs, the API and CLI both run, SQLite schema creation is idempotent, and
-all three modules (A: Terraform change risk, B: failure-domain simulation, C: recovery
-readiness including a real local Docker/Postgres drill lab) are fully implemented, tested,
-and documented — and now share one SQLite run history, retrievable by `run_id` through both
-the CLI and the API. Portfolio polish (README/demo script/clean-checkout verification) is
-Milestone 7.
+All 7 milestones are complete. The package installs, the API and CLI both run, SQLite
+schema creation is idempotent, and all three modules (A: Terraform change risk, B:
+failure-domain simulation, C: recovery readiness including a real local Docker/Postgres
+drill lab) are fully implemented, tested, and documented — sharing one SQLite run history
+retrievable by `run_id` through both the CLI and the API, a full docs set, a working
+`make demo`, and a passing mypy configuration.
 
 ### What exists now
 
@@ -273,6 +274,53 @@ started writing a real `infraguard.db` into the repository's working directory (
 a 77 KB file appeared in the repo root after a routine `pytest` run). Fixed by giving every
 affected test an isolated `--db-path` under `tmp_path`, and removed the stray file.
 
+## Milestone 7: Portfolio polish
+
+```
+docs/THREAT_MODEL.md         Inputs, sensitive data, trust boundaries, lab-specific threats
+docs/TESTING.md                Structure, Docker-conditional tests, lint/type-check setup
+docs/DESIGN_DECISIONS.md         Trade-offs + alternatives considered, per module
+docs/DEMO_SCRIPT.md                Narrated interview walkthrough of scripts/demo.sh
+scripts/demo.sh                      make demo: all 3 modules + platform + live lab if present
+examples/sample_outputs/               Committed real report output per module
+pyproject.toml [tool.mypy]               Added mypy, scoped to src/infraguard
+```
+
+### mypy added and made clean (not just configured)
+
+`uv run mypy` found 9 real issues on its first run against the 63-file `src/infraguard`
+tree, all fixed (none suppressed with a blanket ignore):
+
+1. `redaction.py`: a local variable named `result` was reused across two branches with
+   incompatible inferred types (`dict` in one, `list` in the other) — renamed the second.
+2. `core/audit.py`: `sqlite3.Cursor.lastrowid` is typed `int | None`; added an `assert` with
+   a one-line comment on why it's always set here (an INSERT into a normal rowid table).
+3. `core/models.py`: `Severity`'s `__lt__`/`__gt__`/`__le__`/`__ge__` overrides narrowed
+   their parameter type to `Severity`, violating the Liskov substitution principle against
+   `str`'s own comparison methods — widened to accept `str` and coerce via `Severity(other)`.
+4. `disaster_recovery/assessor.py`: `overall`'s type widened to plain `str` across its
+   if/elif branches instead of staying the `Literal[...]` the model field requires — fixed
+   with an explicit `Literal[...]` annotation at first assignment.
+5. `failure_simulation/simulator.py`: a `dict.get()` without a default produced `str |
+   None` where a plain `str` key was needed next — added the same default the subsequent
+   lookup already used, with no behavior change.
+
+### Verified commands (actually executed)
+
+```bash
+uv run mypy            # -> Success: no issues found in 63 source files
+uv run pytest -q       # -> 203 passed
+uv run ruff check src tests   # -> All checks passed!
+./scripts/demo.sh / make demo  # -> ran all 3 modules + platform integration + the live
+                                 #    Docker lab bonus section end-to-end, exit 0
+```
+
+### Clean-checkout verification
+
+See the note immediately below this section (added right after actually performing it) for
+the literal output of cloning this repository fresh into a separate directory and running
+`make install && make test && make demo` there with no manual steps beyond this README.
+
 ## Repository audit
 
 - Working directory (`/Users/akanksha./Documents/InfraGuard`) was completely empty before
@@ -294,7 +342,7 @@ affected test an isolated `--db-path` under `tmp_path`, and removed the stray fi
 | `docker` (CLI) | yes | 29.6.1, context `colima` | Daemon is up via Colima (not Docker Desktop). 1 running + 16 stopped containers already exist on this machine from unrelated prior work — **InfraGuard will never touch containers/volumes it did not create itself**, and all lab resources will use an explicit, InfraGuard-prefixed project name. |
 | `docker compose` (CLI plugin subcommand) | no | — | `docker compose version` reports "unknown command" under this CLI/Colima context, even though a plugin shim is present in `~/.docker/cli-plugins/`. |
 | `docker-compose` (standalone binary) | yes | 5.3.1 (`/opt/homebrew/bin/docker-compose`) | **Fallback that works today.** Module C tooling/Makefile will try `docker compose` first and fall back to `docker-compose` automatically, documented plainly rather than assumed. |
-| `psql` / `pg_ctl` (local Postgres client/server) | no | — | No bare-metal PostgreSQL install on this machine at all. This is actually convenient: it enforces the constraint that the recovery lab's Postgres only ever runs **inside Docker**, never against a host install. The Python app will speak to Postgres via a Python driver (`psycopg[binary]`, bundles its own libpq) rather than shelling out to `psql`. |
+| `psql` / `pg_ctl` (local Postgres client/server) | no | — | No bare-metal PostgreSQL install on this machine at all. This is actually convenient: it enforces the constraint that the recovery lab's Postgres only ever runs **inside Docker**, never against a host install. As actually built in Milestone 5, the app runs `pg_dump`/`pg_restore`/`psql` via `docker exec` inside the lab's own container rather than needing any local Postgres client — simpler than adding a `psycopg` dependency, since no Python-side DB driver is needed at all. |
 | `terraform` | yes | 1.15.8 | Used only to *generate* example `plan.json` fixtures for docs/demo (`terraform init && terraform plan -out=tfplan && terraform show -json tfplan > plan.json`). InfraGuard itself never invokes `terraform` at runtime — it only parses the JSON produced by that workflow, and tests run against committed static fixture files so they need no network or Terraform install. |
 
 ### Implication for the "must still work if Docker is unavailable" requirement
@@ -304,26 +352,9 @@ via Colima) — Module A (change analysis) and Module B (failure simulation) hav
 or Postgres dependency by construction, so this requirement is straightforward to satisfy:
 those modules only need the `uv`-managed Python environment.
 
-## What is NOT yet built
+## Historical note
 
-Everything in Modules A/B/C, the shared platform (models, policy engine, SQLite persistence,
-API, CLI), and all tests. Milestone 1 starts that work after this audit is reviewed.
-
-## Planned first-run commands (not functional yet)
-
-These are the target commands once Milestone 1 (foundation) and Milestone 2 (Module A) land —
-listed now so the roadmap's acceptance criteria are concrete, not because they run today:
-
-```bash
-# Milestone 1+
-uv sync                       # create venv, install deps from pyproject.toml/uv.lock
-uv run pytest                 # run unit test suite
-uv run infraguard --help      # CLI entry point
-
-# Milestone 2 (Module A demo)
-uv run infraguard analyze-change --plan examples/terraform/plan.json
-```
-
-No command above has been executed as a real InfraGuard command yet (`uv`, `docker`,
-`terraform`, `git` version checks above were run directly against the OS to audit tooling,
-not against this project).
+The two subsections that used to follow this toolchain table at Milestone 0 ("What is NOT
+yet built" and "Planned first-run commands") are removed now that all 7 milestones are
+complete — see "Current state" at the top of this file and each milestone's own section
+above for what was actually built and verified, in order.

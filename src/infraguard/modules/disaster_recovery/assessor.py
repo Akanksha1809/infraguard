@@ -7,6 +7,7 @@ evidence needed to decide it is simply absent.
 """
 
 from datetime import datetime
+from typing import Literal
 
 from infraguard.core.models import Confidence, Finding, Severity
 from infraguard.modules.disaster_recovery.models import (
@@ -303,6 +304,7 @@ def assess_workload(
             )
         )
 
+    overall: Literal["ready", "not_ready", "insufficient_evidence"]
     if not backup_evidence_present:
         overall = "not_ready"
     elif (

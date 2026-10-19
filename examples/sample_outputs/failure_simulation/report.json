@@ -1,0 +1,373 @@
+{
+  "schema_version": 1,
+  "run_id": "cf3b395941244352b7e9dc2a13082a34",
+  "module": "failure_simulation",
+  "created_at": "2026-10-19T17:35:36.119679Z",
+  "inputs": {
+    "source": "examples/topologies/redundant-app-shared-db-bottleneck.yaml",
+    "topology_name": "redundant-app-shared-db-bottleneck",
+    "scenario": {
+      "name": "cli-scenario",
+      "failed_component_ids": [
+        "db"
+      ],
+      "failed_domains": []
+    },
+    "explicit_failed": [
+      "db"
+    ],
+    "cascaded": [
+      "app-1",
+      "app-2",
+      "client",
+      "lb"
+    ],
+    "total_down": [
+      "app-1",
+      "app-2",
+      "client",
+      "db",
+      "lb"
+    ],
+    "graph": {
+      "nodes": [
+        {
+          "id": "client",
+          "name": "Client traffic",
+          "kind": "client",
+          "failure_domain": null,
+          "redundancy_group": null,
+          "capacity": null
+        },
+        {
+          "id": "lb",
+          "name": "Load balancer",
+          "kind": "load_balancer",
+          "failure_domain": null,
+          "redundancy_group": null,
+          "capacity": 200.0
+        },
+        {
+          "id": "app-1",
+          "name": "App instance 1",
+          "kind": "app",
+          "failure_domain": null,
+          "redundancy_group": "app",
+          "capacity": 100.0
+        },
+        {
+          "id": "app-2",
+          "name": "App instance 2",
+          "kind": "app",
+          "failure_domain": null,
+          "redundancy_group": "app",
+          "capacity": 100.0
+        },
+        {
+          "id": "db",
+          "name": "Shared database",
+          "kind": "database",
+          "failure_domain": null,
+          "redundancy_group": null,
+          "capacity": 100.0
+        }
+      ],
+      "edges": [
+        {
+          "from": "client",
+          "to": "lb",
+          "required": true
+        },
+        {
+          "from": "lb",
+          "to": "app-1",
+          "required": true
+        },
+        {
+          "from": "lb",
+          "to": "app-2",
+          "required": true
+        },
+        {
+          "from": "app-1",
+          "to": "db",
+          "required": true
+        },
+        {
+          "from": "app-2",
+          "to": "db",
+          "required": true
+        }
+      ]
+    },
+    "baseline_capacity": [
+      {
+        "label": "client",
+        "member_ids": [
+          "client"
+        ],
+        "total_capacity": null,
+        "percent_remaining": null
+      },
+      {
+        "label": "lb",
+        "member_ids": [
+          "lb"
+        ],
+        "total_capacity": 200.0,
+        "percent_remaining": 100.0
+      },
+      {
+        "label": "app",
+        "member_ids": [
+          "app-1",
+          "app-2"
+        ],
+        "total_capacity": 200.0,
+        "percent_remaining": 100.0
+      },
+      {
+        "label": "db",
+        "member_ids": [
+          "db"
+        ],
+        "total_capacity": 100.0,
+        "percent_remaining": 100.0
+      }
+    ],
+    "scenario_capacity": [
+      {
+        "label": "client",
+        "member_ids": [
+          "client"
+        ],
+        "total_capacity": null,
+        "surviving_capacity": null,
+        "percent_remaining": null,
+        "note": "Incomplete capacity data: at least one member has no declared 'capacity', so a surviving-capacity ratio cannot be honestly computed for this group."
+      },
+      {
+        "label": "lb",
+        "member_ids": [
+          "lb"
+        ],
+        "total_capacity": 200.0,
+        "surviving_capacity": 0,
+        "percent_remaining": 0.0,
+        "note": null
+      },
+      {
+        "label": "app",
+        "member_ids": [
+          "app-1",
+          "app-2"
+        ],
+        "total_capacity": 200.0,
+        "surviving_capacity": 0,
+        "percent_remaining": 0.0,
+        "note": null
+      },
+      {
+        "label": "db",
+        "member_ids": [
+          "db"
+        ],
+        "total_capacity": 100.0,
+        "surviving_capacity": 0,
+        "percent_remaining": 0.0,
+        "note": null
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "2fdc5d2dc7f1",
+      "rule_id": "topology_warning.no_failure_domains_declared",
+      "severity": "low",
+      "confidence": "confirmed",
+      "summary": "Topology warning: no_failure_domains_declared",
+      "detail": "No component declares a failure_domain, so domain-level failure scenarios (--failure-domain) have nothing to target.",
+      "affected_resources": [],
+      "evidence": {},
+      "remediation": null
+    },
+    {
+      "id": "829eb2a82ef4",
+      "rule_id": "single_point_of_failure",
+      "severity": "high",
+      "confidence": "heuristic",
+      "summary": "'lb' is a single point of failure",
+      "detail": "Simulating only 'lb' failing causes 1 other component(s) to go down, per this topology's declared dependencies and redundancy groups. This is only as sound as those declarations — it is not a measurement of the real system.",
+      "affected_resources": [
+        "client",
+        "lb"
+      ],
+      "evidence": {
+        "failed": "lb",
+        "cascaded": [
+          "client"
+        ]
+      },
+      "remediation": "Give 'lb' a redundant peer (same redundancy_group), or mark dependents' dependency on it as optional if that's accurate."
+    },
+    {
+      "id": "640f0338f514",
+      "rule_id": "single_point_of_failure",
+      "severity": "high",
+      "confidence": "heuristic",
+      "summary": "'db' is a single point of failure",
+      "detail": "Simulating only 'db' failing causes 4 other component(s) to go down, per this topology's declared dependencies and redundancy groups. This is only as sound as those declarations — it is not a measurement of the real system.",
+      "affected_resources": [
+        "app-1",
+        "app-2",
+        "client",
+        "db",
+        "lb"
+      ],
+      "evidence": {
+        "failed": "db",
+        "cascaded": [
+          "app-1",
+          "app-2",
+          "client",
+          "lb"
+        ]
+      },
+      "remediation": "Give 'db' a redundant peer (same redundancy_group), or mark dependents' dependency on it as optional if that's accurate."
+    },
+    {
+      "id": "cbcecb870a21",
+      "rule_id": "dependency_without_redundancy",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "summary": "'lb' is a required dependency with no redundancy",
+      "detail": "'client' has a required dependency on 'lb', which declares no redundancy_group peers. This is read directly from the topology, not inferred.",
+      "affected_resources": [
+        "lb",
+        "client"
+      ],
+      "evidence": {
+        "target": "lb",
+        "members": [
+          "lb"
+        ]
+      },
+      "remediation": "Give 'lb' a redundant peer, or confirm this dependency is genuinely required rather than optional."
+    },
+    {
+      "id": "91a60d184a01",
+      "rule_id": "dependency_without_redundancy",
+      "severity": "medium",
+      "confidence": "confirmed",
+      "summary": "'db' is a required dependency with no redundancy",
+      "detail": "'app-1' has a required dependency on 'db', which declares no redundancy_group peers. This is read directly from the topology, not inferred.",
+      "affected_resources": [
+        "db",
+        "app-1"
+      ],
+      "evidence": {
+        "target": "db",
+        "members": [
+          "db"
+        ]
+      },
+      "remediation": "Give 'db' a redundant peer, or confirm this dependency is genuinely required rather than optional."
+    },
+    {
+      "id": "9d2605b3d6e1",
+      "rule_id": "component_failed_explicit",
+      "severity": "high",
+      "confidence": "confirmed",
+      "summary": "'db' fails in this scenario",
+      "detail": "'db' was explicitly failed by this scenario.",
+      "affected_resources": [
+        "db"
+      ],
+      "evidence": {},
+      "remediation": null
+    },
+    {
+      "id": "f86d97983078",
+      "rule_id": "component_down_cascaded",
+      "severity": "high",
+      "confidence": "heuristic",
+      "summary": "'app-1' goes down as a consequence",
+      "detail": "'app-1' was not directly failed, but goes down due to a required dependency on 'db', whose redundancy group (db) is entirely down.",
+      "affected_resources": [
+        "app-1",
+        "db"
+      ],
+      "evidence": {
+        "dependency_target": "db",
+        "reason": "required dependency on 'db', whose redundancy group (db) is entirely down"
+      },
+      "remediation": "Add redundancy for 'db', or confirm 'app-1' genuinely cannot tolerate that dependency being unavailable."
+    },
+    {
+      "id": "1311a8d7e67b",
+      "rule_id": "component_down_cascaded",
+      "severity": "high",
+      "confidence": "heuristic",
+      "summary": "'app-2' goes down as a consequence",
+      "detail": "'app-2' was not directly failed, but goes down due to a required dependency on 'db', whose redundancy group (db) is entirely down.",
+      "affected_resources": [
+        "app-2",
+        "db"
+      ],
+      "evidence": {
+        "dependency_target": "db",
+        "reason": "required dependency on 'db', whose redundancy group (db) is entirely down"
+      },
+      "remediation": "Add redundancy for 'db', or confirm 'app-2' genuinely cannot tolerate that dependency being unavailable."
+    },
+    {
+      "id": "f570cb4b4b61",
+      "rule_id": "component_down_cascaded",
+      "severity": "high",
+      "confidence": "heuristic",
+      "summary": "'client' goes down as a consequence",
+      "detail": "'client' was not directly failed, but goes down due to a required dependency on 'lb', whose redundancy group (lb) is entirely down.",
+      "affected_resources": [
+        "client",
+        "lb"
+      ],
+      "evidence": {
+        "dependency_target": "lb",
+        "reason": "required dependency on 'lb', whose redundancy group (lb) is entirely down"
+      },
+      "remediation": "Add redundancy for 'lb', or confirm 'client' genuinely cannot tolerate that dependency being unavailable."
+    },
+    {
+      "id": "bbfb05169066",
+      "rule_id": "component_down_cascaded",
+      "severity": "high",
+      "confidence": "heuristic",
+      "summary": "'lb' goes down as a consequence",
+      "detail": "'lb' was not directly failed, but goes down due to a required dependency on 'app-1', whose redundancy group (app-1, app-2) is entirely down.",
+      "affected_resources": [
+        "app-1",
+        "lb"
+      ],
+      "evidence": {
+        "dependency_target": "app-1",
+        "reason": "required dependency on 'app-1', whose redundancy group (app-1, app-2) is entirely down"
+      },
+      "remediation": "Add redundancy for 'app-1', or confirm 'lb' genuinely cannot tolerate that dependency being unavailable."
+    }
+  ],
+  "assumptions": [
+    "A component is 'down' only if explicitly failed, or if ALL members of a required dependency's redundancy group are down — there is no partial-capability model.",
+    "Redundant peers (same redundancy_group) are treated as fully interchangeable: which specific peer actually serves a request is not modeled.",
+    "An optional (required: false) dependency never propagates failure."
+  ],
+  "limitations": [
+    "This is a structural model of declared dependencies, not a measurement of a real system: no network partitions, no correlated failures, no provider SLAs.",
+    "No availability percentage (e.g. '99.99%') is claimed anywhere — only what the declared topology and failure scenario imply structurally.",
+    "Surviving-capacity ratios are only computed for a redundancy group where every member declares a 'capacity' value; otherwise it is reported as unknown, not assumed."
+  ],
+  "policy_decision": null,
+  "next_steps": [
+    "4 component(s) go down as a consequence of this scenario, not directly — trace each via its finding's evidence.",
+    "Review HIGH-severity findings and any SPOF before relying on this topology."
+  ]
+}
