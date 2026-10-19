@@ -2,6 +2,8 @@ from pathlib import Path
 
 import typer
 
+from infraguard.cli.common import DB_PATH_OPTION
+from infraguard.core.persistence import persist_report
 from infraguard.core.reporting import render_json, render_markdown
 from infraguard.errors import InfraGuardError
 from infraguard.modules.failure_simulation.analyzer import (
@@ -37,6 +39,7 @@ def register(app: typer.Typer) -> None:
         out: Path = typer.Option(
             Path("./infraguard-reports"), "--out", help="Directory to write report(s) into."
         ),
+        db_path: Path = DB_PATH_OPTION,
     ) -> None:
         """Validate a topology file and show its dependency graph."""
         if report_format not in _VALID_FORMATS:
@@ -47,6 +50,7 @@ def register(app: typer.Typer) -> None:
             typer.echo(f"error: {exc.message}", err=True)
             raise typer.Exit(code=2) from exc
 
+        persist_report(db_path, report)
         _write_reports(report, report_format, out)
         typer.echo(f"{len(report.findings)} warning(s) found.")
         raise typer.Exit(code=0)
@@ -68,6 +72,7 @@ def register(app: typer.Typer) -> None:
         out: Path = typer.Option(
             Path("./infraguard-reports"), "--out", help="Directory to write report(s) into."
         ),
+        db_path: Path = DB_PATH_OPTION,
     ) -> None:
         """Simulate one or more component/failure-domain failures and report blast radius."""
         if report_format not in _VALID_FORMATS:
@@ -84,6 +89,7 @@ def register(app: typer.Typer) -> None:
             typer.echo(f"error: {exc.message}", err=True)
             raise typer.Exit(code=2) from exc
 
+        persist_report(db_path, report)
         _write_reports(report, report_format, out)
         cascaded = report.inputs.get("cascaded", [])
         typer.echo(

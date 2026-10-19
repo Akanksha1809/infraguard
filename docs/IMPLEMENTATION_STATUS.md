@@ -10,12 +10,14 @@ Last updated: 2026-10-19
 **Milestone 3 (Failure-Domain Simulator) — done.**
 **Milestone 4 (Disaster Recovery Readiness Validator, policy layer) — done.**
 **Milestone 5 (local Docker/Postgres recovery lab) — done.**
+**Milestone 6 (platform integration) — done.**
 
 The package installs, the API and CLI both run, SQLite schema creation is idempotent, and
 all three modules (A: Terraform change risk, B: failure-domain simulation, C: recovery
 readiness including a real local Docker/Postgres drill lab) are fully implemented, tested,
-and documented. Platform integration (shared SQLite history/audit across all modules) and
-portfolio polish are Milestones 6-7.
+and documented — and now share one SQLite run history, retrievable by `run_id` through both
+the CLI and the API. Portfolio polish (README/demo script/clean-checkout verification) is
+Milestone 7.
 
 ### What exists now
 
@@ -229,6 +231,47 @@ No bugs were caught by the test suite this milestone; the one real design correc
 during development was choosing to run `pg_dump`/`pg_restore`/`psql` via `docker exec`
 inside the container rather than requiring a local PostgreSQL client — confirmed necessary
 since this machine has no local `psql` at all (see Milestone 0's audit above).
+
+## Milestone 6: Platform integration
+
+```
+src/infraguard/storage/db.py            Schema v2: additive 'runs' table, in-place upgrade
+src/infraguard/core/
+  reports_store.py    save_report / load_report / list_runs — shared by all 3 modules
+  persistence.py        persist_report(): save + audit event, in one call every module uses
+  rule_registry.py        Static catalog of every rule_id, module, severity, description
+cli/commands/
+  reports.py              `infraguard report --run-id ...`, `infraguard runs`
+  policy.py                 `infraguard policy [--module ...]`
+api/v1/reports.py        GET /api/v1/reports/{run_id}, GET /api/v1/reports
+api/v1/policy.py           GET /api/v1/policy
+```
+
+Every existing report-producing CLI command and API endpoint (analyze-change,
+validate-topology, simulate-failure, assess-recovery) now calls `persist_report` right
+after building its `Report` — a cross-cutting change touching all 4.
+
+### Verified commands (actually executed)
+
+```bash
+uv run infraguard analyze-change --plan examples/terraform/sample/plan.json \
+    --db-path /tmp/m6-test.db --out /tmp/m6-reports
+uv run infraguard runs --db-path /tmp/m6-test.db
+# -> 2026-10-19T17:15:50...  change_analysis       ed86090348604ea6b19cc8bf63c4ceee
+uv run infraguard report --run-id ed86090348604ea6b19cc8bf63c4ceee --db-path /tmp/m6-test.db
+# -> the full rendered Markdown report, byte-for-byte the same content originally produced
+uv run infraguard policy --module change_analysis
+# -> active thresholds + the change_analysis rule catalog
+
+uv run pytest -q   # 203 passed
+uv run ruff check src tests   # All checks passed!
+```
+
+One real regression was caught and fixed, not shipped silently: adding a `--db-path`
+option to every report-producing CLI command meant existing CLI tests that didn't pass one
+started writing a real `infraguard.db` into the repository's working directory (confirmed:
+a 77 KB file appeared in the repo root after a routine `pytest` run). Fixed by giving every
+affected test an isolated `--db-path` under `tmp_path`, and removed the stray file.
 
 ## Repository audit
 

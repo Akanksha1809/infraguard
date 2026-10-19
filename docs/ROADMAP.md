@@ -147,11 +147,26 @@ Acceptance criteria — all verified by actually running the commands:
 
 ## Milestone 6 — Platform integration
 
-Acceptance criteria:
-- All three modules reachable through both the CLI and the versioned FastAPI routes, sharing
-  one SQLite history/audit trail.
-- `infraguard report --run-id <id> --format markdown|json` retrieves any past run's report.
-- Policy engine inspection endpoint/command lists active rules and thresholds.
+**Status: `[x]` done.**
+
+Acceptance criteria — all verified by actually running the commands:
+- [x] All three modules persist through one shared SQLite `runs` table via
+  `core.persistence.persist_report`, reachable through both the CLI (`--db-path`,
+  defaulting to `./infraguard.db`) and the API (the app's configured database) — confirmed
+  end-to-end: `analyze-change` → `runs` → `report --run-id` round-tripped a real run's
+  full report via both the CLI and `GET /api/v1/reports/{run_id}`.
+- [x] `infraguard report --run-id <id> --format markdown|json` retrieves any past run's
+  report (exit code 2 with a clear message for an unknown run_id, never a stack trace).
+- [x] `infraguard policy` / `GET /api/v1/policy` lists Module A's active configurable
+  thresholds plus the complete, fixed rule catalog for all three modules — honestly scoped
+  (see docs/POLICY_REFERENCE.md: only Module A has real thresholds to inspect).
+- [x] Schema bumped to v2 (additive `runs` table); `tests/unit/test_db_upgrade.py` proves
+  an existing v1 database upgrades in place with its data intact, never losing history.
+- [x] `make test` (203 tests, all passing) and `make lint` (ruff, clean) both pass. One
+  real regression was caught and fixed during this milestone: adding `--db-path` to every
+  report-producing CLI command revealed that tests invoking those commands without an
+  explicit `--db-path` were writing a real `infraguard.db` into the repository root as a
+  side effect — fixed by isolating every such test to a `tmp_path`-scoped database.
 
 ## Milestone 7 — Portfolio polish
 

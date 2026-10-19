@@ -13,7 +13,15 @@ def test_validate_topology_cli(tmp_path: Path) -> None:
     out_dir = tmp_path / "reports"
     result = runner.invoke(
         app,
-        ["validate-topology", "--file", str(FIXTURES_DIR / "simple_chain.yaml"), "--out", str(out_dir)],
+        [
+            "validate-topology",
+            "--file",
+            str(FIXTURES_DIR / "simple_chain.yaml"),
+            "--out",
+            str(out_dir),
+            "--db-path",
+            str(tmp_path / "test.db"),
+        ],
     )
     assert result.exit_code == 0
     assert len(list(out_dir.glob("*.json"))) == 1
@@ -29,6 +37,8 @@ def test_validate_topology_cli_errors_on_fatal_input(tmp_path: Path) -> None:
             str(FIXTURES_DIR / "duplicate_ids.yaml"),
             "--out",
             str(tmp_path / "out"),
+            "--db-path",
+            str(tmp_path / "test.db"),
         ],
     )
     assert result.exit_code == 2
@@ -43,6 +53,8 @@ def test_simulate_failure_cli_requires_a_failure_argument(tmp_path: Path) -> Non
             str(FIXTURES_DIR / "simple_chain.yaml"),
             "--out",
             str(tmp_path / "out"),
+            "--db-path",
+            str(tmp_path / "test.db"),
         ],
     )
     assert result.exit_code != 0
@@ -60,6 +72,8 @@ def test_simulate_failure_cli_component(tmp_path: Path) -> None:
             "c",
             "--out",
             str(out_dir),
+            "--db-path",
+            str(tmp_path / "test.db"),
         ],
     )
     assert result.exit_code == 0
@@ -78,6 +92,8 @@ def test_simulate_failure_cli_domain_on_example(tmp_path: Path) -> None:
             "zone-a",
             "--out",
             str(out_dir),
+            "--db-path",
+            str(tmp_path / "test.db"),
         ],
     )
     assert result.exit_code == 0

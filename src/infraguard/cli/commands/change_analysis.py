@@ -2,6 +2,8 @@ from pathlib import Path
 
 import typer
 
+from infraguard.cli.common import DB_PATH_OPTION
+from infraguard.core.persistence import persist_report
 from infraguard.core.reporting import render_json, render_markdown
 from infraguard.errors import InfraGuardError
 from infraguard.modules.change_analysis.analyzer import analyze_plan_file
@@ -25,6 +27,7 @@ def register(app: typer.Typer) -> None:
         out: Path = typer.Option(
             Path("./infraguard-reports"), "--out", help="Directory to write report(s) into."
         ),
+        db_path: Path = DB_PATH_OPTION,
     ) -> None:
         """Analyze a Terraform plan for change risk and apply CI policy."""
         if report_format not in _VALID_FORMATS:
@@ -37,6 +40,7 @@ def register(app: typer.Typer) -> None:
             typer.echo(f"error: {exc.message}", err=True)
             raise typer.Exit(code=2) from exc
 
+        persist_report(db_path, report)
         out.mkdir(parents=True, exist_ok=True)
         if report_format in ("json", "both"):
             json_path = out / f"{report.run_id}.json"

@@ -7,7 +7,7 @@ Milestone 7.
 
 ## Status
 
-Milestone 5 (local Docker/Postgres recovery lab) complete — see
+Milestone 6 (platform integration) complete — see
 [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) for exactly what works today
 and [docs/ROADMAP.md](docs/ROADMAP.md) for what's next.
 
@@ -67,3 +67,14 @@ uv run infraguard recovery-lab stop
 This actually backs up, truncates, restores, and checksum-verifies a disposable Postgres
 database in Docker — see docs/DISASTER_RECOVERY.md's "Local recovery lab" section for the
 safety scoping and what was verified by actually running it.
+
+### Retrieve a past run, or inspect policy
+
+```bash
+uv run infraguard runs
+uv run infraguard report --run-id <id> --format markdown
+uv run infraguard policy
+```
+
+Every module persists its report to one shared SQLite history (`infraguard.db` by default,
+override with `--db-path`) — see [docs/POLICY_REFERENCE.md](docs/POLICY_REFERENCE.md).

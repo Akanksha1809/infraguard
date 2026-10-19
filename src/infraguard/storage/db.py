@@ -11,7 +11,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS schema_version (
@@ -27,6 +27,18 @@ CREATE TABLE IF NOT EXISTS audit_events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_audit_events_created_at ON audit_events (created_at);
+
+-- Added in schema v2: one row per module run (change analysis / failure simulation /
+-- disaster recovery), the full Report as JSON, so any past run can be retrieved later.
+CREATE TABLE IF NOT EXISTS runs (
+    run_id TEXT PRIMARY KEY,
+    module TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    report_json TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_runs_module ON runs (module);
+CREATE INDEX IF NOT EXISTS idx_runs_created_at ON runs (created_at);
 """
 
 
@@ -42,12 +54,21 @@ def get_connection(db_path: Path) -> Iterator[sqlite3.Connection]:
 
 
 def init_db(db_path: Path) -> None:
-    """Create the schema if absent. Safe to call on every startup."""
+    """Create the schema if absent, and upgrade in place if an older version exists.
+
+    Upgrades are purely additive (new tables only, via `CREATE TABLE IF NOT EXISTS`), so
+    "upgrading" is just: run the current full schema script (safe against an existing v1
+    database — it only adds what's missing), then bump the recorded version number. No
+    data transformation is ever needed as long as this stays additive-only; a column
+    change or removal would be the signal to introduce a real migration tool.
+    """
     with get_connection(db_path) as conn:
         conn.executescript(_SCHEMA)
         row = conn.execute("SELECT version FROM schema_version").fetchone()
         if row is None:
             conn.execute("INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,))
+        elif row["version"] < SCHEMA_VERSION:
+            conn.execute("UPDATE schema_version SET version = ?", (SCHEMA_VERSION,))
         conn.commit()
 
 

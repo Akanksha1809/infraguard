@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, ValidationError
 
+from infraguard.core.persistence import persist_report
 from infraguard.errors import InputValidationError
 from infraguard.modules.failure_simulation.analyzer import (
     MAX_TOPOLOGY_SIZE_BYTES,
@@ -47,6 +48,7 @@ async def validate_topology_endpoint(request: Request) -> dict[str, Any]:
     except ValidationError as exc:
         raise InputValidationError(f"Request body failed validation: {exc}") from exc
     report = validate_topology(parsed.topology, source="api")
+    persist_report(request.app.state.settings.db_path, report)
     return report.model_dump(mode="json")
 
 
@@ -58,4 +60,5 @@ async def simulate_failure_endpoint(request: Request) -> dict[str, Any]:
     except ValidationError as exc:
         raise InputValidationError(f"Request body failed validation: {exc}") from exc
     report = simulate_failure(parsed.topology, parsed.scenario, source="api")
+    persist_report(request.app.state.settings.db_path, report)
     return report.model_dump(mode="json")

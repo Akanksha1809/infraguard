@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, ValidationError
 
+from infraguard.core.persistence import persist_report
 from infraguard.errors import InputValidationError
 from infraguard.modules.disaster_recovery.analyzer import (
     MAX_DOCUMENT_SIZE_BYTES,
@@ -48,4 +49,5 @@ async def assess_recovery_endpoint(request: Request) -> dict[str, Any]:
         source_policy="api",
         source_evidence="api",
     )
+    persist_report(request.app.state.settings.db_path, report)
     return report.model_dump(mode="json")

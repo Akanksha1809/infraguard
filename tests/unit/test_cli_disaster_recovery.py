@@ -22,6 +22,8 @@ def test_assess_recovery_cli_ready_exits_zero(tmp_path: Path) -> None:
             "2026-10-19T12:00:00Z",
             "--out",
             str(out_dir),
+            "--db-path",
+            str(tmp_path / "test.db"),
         ],
     )
     assert result.exit_code == 0
@@ -78,6 +80,8 @@ def test_assess_recovery_cli_example_not_ready_exits_one(tmp_path: Path) -> None
             "2026-10-19T12:00:00Z",
             "--out",
             str(out_dir),
+            "--db-path",
+            str(tmp_path / "test.db"),
         ],
     )
     assert result.exit_code == 1

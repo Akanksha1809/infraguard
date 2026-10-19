@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, ValidationError
 
+from infraguard.core.persistence import persist_report
 from infraguard.errors import InputValidationError
 from infraguard.modules.change_analysis.analyzer import MAX_PLAN_SIZE_BYTES, analyze_plan
 from infraguard.modules.change_analysis.policy import PolicyConfig
@@ -38,4 +39,5 @@ async def analyze_change(request: Request) -> dict[str, Any]:
         raise InputValidationError(f"Request body failed validation: {exc}") from exc
 
     report = analyze_plan(parsed_request.plan, parsed_request.policy, source="api")
+    persist_report(request.app.state.settings.db_path, report)
     return report.model_dump(mode="json")
