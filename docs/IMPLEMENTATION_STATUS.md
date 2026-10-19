@@ -4,10 +4,52 @@ Last updated: 2026-10-19
 
 ## Current state
 
-**Milestone 0 (Repository and environment audit) — in progress, awaiting review.**
+**Milestone 0 (repository/environment audit) — done.**
+**Milestone 1 (project foundation) — done.**
 
-No application code exists yet. This file, `docs/ROADMAP.md`, and `docs/ARCHITECTURE.md`
-are the only project artifacts so far.
+The package installs, the API and CLI both run, SQLite schema creation is idempotent, and
+the full test suite (9 tests) and lint (`ruff`) pass. No module logic (Change Analysis,
+Failure Simulation, Disaster Recovery) exists yet — that starts at Milestone 2.
+
+### What exists now
+
+```
+src/infraguard/
+  config.py            Settings (env-prefixed, INFRAGUARD_*), all fields have safe local defaults
+  errors.py            InfraGuardError hierarchy -> {"error": {code, message, details}}
+  logging_config.py     stdlib logging + JSON formatter, no extra dependency
+  core/
+    audit.py           record_event()/list_events() against the shared SQLite audit log
+  storage/
+    db.py              sqlite3 connection + idempotent schema creation, schema_version table
+  api/
+    app.py             create_app() factory: wires settings, logging, DB init, error handler
+    v1/health.py       GET /api/v1/health (liveness), GET /api/v1/ready (DB check)
+  cli/
+    app.py             Typer app: `infraguard version`, `infraguard serve [--reload]`
+tests/
+  unit/                9 tests covering all of the above
+Makefile                install / lint / test / demo targets
+```
+
+### Verified commands (actually executed, not assumed)
+
+```bash
+uv sync --extra dev        # -> 38 packages installed, Python 3.12.15
+uv run pytest -v           # -> 9 passed
+uv run ruff check src tests  # -> All checks passed!
+uv run infraguard --help   # -> prints version/serve commands
+uv run infraguard version  # -> 0.1.0
+uv run uvicorn infraguard.api.app:create_app --factory --port 8321
+curl .../api/v1/health     # -> {"status":"ok"}
+curl .../api/v1/ready      # -> {"status":"ok","schema_version":"1"}
+curl .../docs              # -> HTTP 200
+```
+
+One bug was caught and fixed during this verification: `get_schema_version` originally
+raised `sqlite3.OperationalError` instead of returning `None` when called before `init_db`
+had ever run (table didn't exist yet). Fixed by checking `sqlite_master` first; covered by
+`tests/unit/test_db.py::test_init_db_creates_schema`.
 
 ## Repository audit
 

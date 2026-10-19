@@ -16,17 +16,30 @@ Acceptance criteria:
 
 ## Milestone 1 — Project foundation
 
+**Status: `[x]` done.**
+
 Goal: a package that installs, a CLI/API that start, and a test suite that runs — with
 no feature logic yet.
 
-Acceptance criteria:
-- `uv sync` creates a working venv from `pyproject.toml`.
-- `uv run infraguard --help` prints a CLI skeleton (even if commands are stubs).
-- `uv run uvicorn infraguard.main:app` serves `/health` and `/docs` (OpenAPI UI).
-- SQLite schema creation runs idempotently and creates the expected tables.
-- `uv run pytest` passes (even if the only tests are smoke tests for the above).
-- Structured logging and a consistent error-response shape exist and are exercised by at
-  least one test.
+Acceptance criteria — all verified by actually running the commands:
+- [x] `uv sync --extra dev` creates a working venv from `pyproject.toml` (Python 3.12.15,
+  38 packages).
+- [x] `uv run infraguard --help` prints the CLI skeleton (`version`, `serve` commands).
+- [x] `uv run uvicorn infraguard.api.app:create_app --factory` serves `/api/v1/health`,
+  `/api/v1/ready`, and `/docs` (OpenAPI UI) — confirmed with live `curl` requests
+  (200 responses) against a running instance, then torn down.
+- [x] SQLite schema creation (`infraguard.storage.db.init_db`) runs idempotently and creates
+  `schema_version` + `audit_events`.
+- [x] `uv run pytest` passes: 9/9 tests (health, readiness, schema init/idempotency, audit
+  event recording, structured error shape, CLI help/version).
+- [x] `uv run ruff check src tests` passes with zero findings.
+- [x] Structured JSON logging (`infraguard.logging_config`) and a consistent
+  `{"error": {"code", "message", "details"}}` error shape (`infraguard.errors` +
+  a FastAPI exception handler) exist and are exercised by `tests/unit/test_errors.py`.
+
+What this milestone deliberately does NOT include: no `core/inventory.py`, `graph.py`,
+`policies.py`, or `reporting.py` yet — those are built starting Milestone 2, against real
+module requirements, rather than as empty placeholders now.
 
 ## Milestone 2 — Terraform Change Impact Analyzer (Module A)
 
