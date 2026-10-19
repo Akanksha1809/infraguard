@@ -10,6 +10,8 @@ dependencies = [
   "pydantic>=2.9,<3.0",
   "pydantic-settings>=2.6,<3.0",
   "typer>=0.13,<1.0",
+  "networkx>=3.3,<4.0",
+  "pyyaml>=6.0,<7.0",
 ]
 
 [project.optional-dependencies]
@@ -35,8 +37,13 @@ testpaths = ["tests"]
 addopts = "-ra"
 
 [tool.ruff]
-line-length = 100
+line-length = 110
 src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+# typer's and FastAPI's documented idiom is a function call as the parameter default
+# (typer.Option(...), fastapi.Depends(...)); B008 would otherwise flag every CLI option.
+extend-immutable-calls = ["typer.Option", "typer.Argument", "fastapi.Depends", "fastapi.Query"]

@@ -6,10 +6,12 @@ Last updated: 2026-10-19
 
 **Milestone 0 (repository/environment audit) — done.**
 **Milestone 1 (project foundation) — done.**
+**Milestone 2 (Terraform Change Impact Analyzer) — done.**
 
 The package installs, the API and CLI both run, SQLite schema creation is idempotent, and
-the full test suite (9 tests) and lint (`ruff`) pass. No module logic (Change Analysis,
-Failure Simulation, Disaster Recovery) exists yet — that starts at Milestone 2.
+Module A (Terraform change risk analysis) is fully implemented, tested, and documented.
+Failure Simulation and Disaster Recovery (Modules B/C) do not exist yet — that starts at
+Milestone 3.
 
 ### What exists now
 
@@ -50,6 +52,57 @@ One bug was caught and fixed during this verification: `get_schema_version` orig
 raised `sqlite3.OperationalError` instead of returning `None` when called before `init_db`
 had ever run (table didn't exist yet). Fixed by checking `sqlite_master` first; covered by
 `tests/unit/test_db.py::test_init_db_creates_schema`.
+
+## Milestone 2: Terraform Change Impact Analyzer (Module A)
+
+```
+src/infraguard/core/
+  models.py            Shared Severity/Confidence/Finding/PolicyDecision/Report models
+  graph.py             NetworkX wrapper: build_graph, dependents_of, dependencies_of
+  reporting.py         render_json() / render_markdown() for any module's Report
+src/infraguard/modules/change_analysis/
+  models.py            ChangeAction, ResourceCategory, ResourceChange, ParsedPlan
+  redaction.py          Terraform-mark + key-name-heuristic secret redaction
+  categories.py          Resource-type -> category pattern matching
+  dependencies.py        depends_on + implicit-reference extraction (root module)
+  parser.py              parse_plan(): raw JSON -> ParsedPlan, fatal vs recoverable errors
+  rules.py                7 deterministic risk rules -> Findings
+  risk_score.py           Informational, capped, explained score (never drives policy)
+  policy.py               PolicyConfig + evaluate_policy(): fail-closed CI decision
+  analyzer.py             Ties it together; file-size/JSON validation
+api/v1/change_analysis.py  POST /api/v1/change-analysis/analyze
+cli/commands/change_analysis.py  `infraguard analyze-change`
+examples/terraform/sample/  Real local-only (random/local provider) config + generated plan.json
+examples/policies/            default.yaml, strict.yaml
+```
+
+### Verified commands (actually executed)
+
+```bash
+cd examples/terraform/sample && terraform init && terraform plan -out=tfplan && terraform show -json tfplan > plan.json
+# -> ran for real: "Plan: 3 to add, 0 to change, 0 to destroy."
+
+uv run infraguard analyze-change --plan examples/terraform/sample/plan.json
+# -> 3 finding(s); policy decision: warn — exit code 0
+
+uv run python -c "... parse_plan(real plan.json) ..."
+# -> dependency_edges correctly included both an implicit reference
+#    (local_file.config -> random_pet.suffix) and an explicit depends_on
+#    (local_file.readme -> local_file.config), confirming the dependency
+#    extraction works against genuine Terraform output, not only fixtures.
+
+uv run pytest -q   # full suite, including all change_analysis tests
+uv run ruff check src tests   # clean
+```
+
+Two bugs were caught and fixed by the test suite during this milestone (not shipped
+silently): `parse_plan` originally treated a wholly missing `resource_changes` key as "zero
+changes" instead of a fatal input error (now raises `InputValidationError`, per "a missing
+field is never evidence of safety"); and the redaction heuristic's whole-subtree match on a
+key like `credentials` was initially exercised by a test that assumed partial nested
+redaction instead of the (correct, documented) wholesale redaction — the test was fixed to
+match the intended behavior, and a second test was added to pin down the wholesale-redaction
+case explicitly.
 
 ## Repository audit
 

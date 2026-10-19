@@ -1,0 +1,22 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.15.8",
+  "resource_changes": [
+    {
+      "address": "widgetco_thingamajig.main",
+      "mode": "managed",
+      "type": "widgetco_thingamajig",
+      "name": "main",
+      "provider_name": "registry.terraform.io/widgetco/widgetco",
+      "change": {
+        "actions": ["delete"],
+        "before": {"name": "thing-1"},
+        "after": null,
+        "after_unknown": {},
+        "before_sensitive": {},
+        "after_sensitive": false
+      }
+    }
+  ],
+  "configuration": {"root_module": {"resources": []}}
+}

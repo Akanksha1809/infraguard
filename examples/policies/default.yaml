@@ -1,0 +1,11 @@
+# InfraGuard change-analysis policy — this mirrors the built-in defaults exactly. Copy and
+# adjust thresholds as needed; see docs/CHANGE_ANALYSIS.md for what each option means.
+
+fail_on_severity_at_or_above: high
+warn_on_severity_at_or_above: medium
+
+# If true (the default), any resource/plan that could not be fully parsed causes an "error"
+# decision (CI exit code 2) regardless of other findings. InfraGuard never treats
+# incompletely-parsed input as a clean result just because no severity threshold was
+# crossed — this is what "never fail open on invalid input" means in practice.
+strict_on_parse_warnings: true

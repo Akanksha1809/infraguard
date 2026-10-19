@@ -7,6 +7,7 @@ import typer
 import uvicorn
 
 from infraguard import __version__
+from infraguard.cli.commands import change_analysis
 from infraguard.config import get_settings
 
 app = typer.Typer(
@@ -14,6 +15,8 @@ app = typer.Typer(
     help="Infrastructure reliability and resilience engineering platform.",
     no_args_is_help=True,
 )
+
+change_analysis.register(app)
 
 
 @app.command()

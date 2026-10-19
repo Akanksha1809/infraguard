@@ -1,0 +1,23 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.15.8",
+  "resource_changes": [
+    {
+      "address": "aws_lb.app",
+      "mode": "managed",
+      "type": "aws_lb",
+      "name": "app",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create", "delete"],
+        "before": {"name": "app-lb-v1"},
+        "after": {"name": "app-lb-v2"},
+        "after_unknown": {},
+        "before_sensitive": {},
+        "after_sensitive": {},
+        "replace_paths": [["name"]]
+      }
+    }
+  ],
+  "configuration": {"root_module": {"resources": []}}
+}

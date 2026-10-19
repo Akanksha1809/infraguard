@@ -43,19 +43,33 @@ module requirements, rather than as empty placeholders now.
 
 ## Milestone 2 — Terraform Change Impact Analyzer (Module A)
 
+**Status: `[x]` done.**
+
 Goal: a complete, demonstrable feature — not a stub.
 
-Acceptance criteria:
-- `infraguard analyze-change --plan <file>` runs against a committed example `plan.json` and
-  produces both JSON and Markdown reports.
-- Fixtures cover: create, update, delete, replace, no-op, a dependency chain, unknown/unknown
-  values, and at least one malformed/adversarial input — each with an expected-output test.
-- Secret-looking values in plan output are redacted in reports; a test asserts this.
-- CI exit codes are driven by configurable policy thresholds, not a bare numeric score; a
-  test proves a strict policy fails closed on invalid input (never fails open).
-- `docs/CHANGE_ANALYSIS.md` documents supported resource categories, risk rules, and stated
-  limitations.
-- `make test` and `make lint` pass.
+Acceptance criteria — all verified by actually running the commands:
+- [x] `infraguard analyze-change --plan examples/terraform/sample/plan.json` runs against a
+  **real** plan — `plan.json` was produced by actually running
+  `terraform init && terraform plan -out=tfplan && terraform show -json tfplan > plan.json`
+  against the committed local-only (`random`/`local` provider) example config, not
+  hand-written — and produces both JSON and Markdown reports. Dependency extraction was
+  confirmed working against this real output (recovered both an implicit reference and an
+  explicit `depends_on` edge correctly).
+- [x] Fixtures (`tests/fixtures/change_analysis/`, 13 files) cover: create, update, delete,
+  both replace orderings (with and without reported `replace_paths`), no-op, a data-source
+  read, an explicit+implicit dependency chain, nested unknown values, Terraform-marked and
+  heuristic sensitive values, an unsupported resource type, a module-scoped resource, and
+  four malformed-input shapes — each with tests in `tests/unit/change_analysis/`.
+- [x] Secret-looking values are redacted via two independent signals (Terraform's own
+  sensitivity marks + a key-name heuristic); `tests/unit/change_analysis/test_redaction.py`
+  and `test_parser.py::test_redacts_sensitive_values_while_parsing` assert this, including
+  the case Terraform did *not* mark.
+- [x] CI exit codes come from `policy.py`'s explicit severity thresholds, never the
+  risk score; `test_policy.py::test_parse_warning_findings_fail_closed_by_default` proves a
+  strict policy fails closed (exit 2) on incomplete input rather than passing.
+- [x] `docs/CHANGE_ANALYSIS.md` documents resource categories, every risk rule, the
+  dependency-graph scope/limitations, redaction, risk score, and the policy/exit-code table.
+- [x] `make test` (78 tests, all passing) and `make lint` (ruff, clean) both pass.
 
 ## Milestone 3 — Failure-Domain Simulator (Module B)
 

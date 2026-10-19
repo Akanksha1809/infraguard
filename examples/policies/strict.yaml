@@ -1,0 +1,6 @@
+# A stricter example policy: fails on medium severity instead of high, for teams that want
+# CI to block on more than just destructive/critical changes.
+
+fail_on_severity_at_or_above: medium
+warn_on_severity_at_or_above: low
+strict_on_parse_warnings: true

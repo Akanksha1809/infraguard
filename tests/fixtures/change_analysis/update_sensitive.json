@@ -1,0 +1,22 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.15.8",
+  "resource_changes": [
+    {
+      "address": "aws_db_instance.primary",
+      "mode": "managed",
+      "type": "aws_db_instance",
+      "name": "primary",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["update"],
+        "before": {"password": "old-secret-value", "api_token": "unmarked-token-value", "instance_class": "db.t3.micro"},
+        "after": {"password": "new-secret-value", "api_token": "unmarked-token-value", "instance_class": "db.t3.small"},
+        "after_unknown": {},
+        "before_sensitive": {"password": true},
+        "after_sensitive": {"password": true}
+      }
+    }
+  ],
+  "configuration": {"root_module": {"resources": []}}
+}
