@@ -116,5 +116,6 @@ def module_scoped_warning_if_needed(all_addresses: list[str]) -> ParseWarning | 
                 "incomplete. This is a known limitation, not a confirmed absence of "
                 "dependencies."
             ),
+            fails_closed=False,
         )
     return None

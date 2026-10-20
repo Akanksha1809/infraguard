@@ -106,6 +106,12 @@ is not resolved against its child module's configuration — this needs recursiv
 `module_calls` traversal, which this version does not implement. When any resource address
 starts with `module.`, a `module_scoped_dependencies_unsupported` finding says so explicitly,
 rather than silently reporting an empty (and misleadingly "safe-looking") dependency set.
+**This finding is a stated coverage limitation, not a data problem** — the plan itself is
+fine, InfraGuard's view of part of it is just incomplete — so it does not, on its own, trip
+the strict policy's fail-closed behavior (see "Policy and CI exit codes" below). This
+distinction was added after running a 200-resource synthetic plan through the analyzer:
+almost every real Terraform codebase uses child modules, and treating that as equivalent to
+malformed input would have made `error` the default outcome for nearly any real plan.
 
 Verified against real Terraform output, not just hand-written fixtures: running the example
 in `examples/terraform/sample` correctly recovers both an implicit reference
@@ -126,7 +132,7 @@ relevant) to zero or more findings — deterministic, no hidden state
 | `unknown_after_values` | create/update/replace with unknown-until-apply attributes | confirmed (that it's unknown) | Flags a gap in what can be assessed; never claims those attributes are safe. |
 | `unsupported_resource_type` | delete/replace on an `other`-category resource | unknown | States there is no specific rule for this resource type. |
 | `dependents_affected` | delete/replace with graph dependents | heuristic | Lists resources that statically reference the one being removed/replaced. |
-| `parse_warning.*` | any per-resource parse problem | unknown | Turns a skipped/ambiguous input into a visible finding, not a silent gap. |
+| `parse_warning.*` | any per-resource parse problem, or a stated coverage limitation | unknown | Turns a skipped/ambiguous input, or a known gap like module-scoped dependencies, into a visible finding, not a silent one. Carries `evidence.fails_closed` (see below) distinguishing the two. |
 
 ## Risk score
 
@@ -147,13 +153,23 @@ Configured via [policy.py](../src/infraguard/modules/change_analysis/policy.py) 
 |---|---|---|
 | `fail_on_severity_at_or_above` | `high` | Any finding at/above this severity → `fail` |
 | `warn_on_severity_at_or_above` | `medium` | Any finding at/above this severity (below fail) → `warn` |
-| `strict_on_parse_warnings` | `true` | Any unparseable/ambiguous input → `error`, regardless of other findings |
+| `strict_on_parse_warnings` | `true` | Any *fatal* parse warning → `error`, regardless of other findings |
+
+A `parse_warning.*` finding is only "fatal" for this purpose if its underlying
+`ParseWarning.fails_closed` is `True` (the default). It's `False` for a handful of known,
+stated coverage limitations — currently just `module_scoped_dependencies_unsupported` —
+where the input is valid and InfraGuard's analysis of it is simply incomplete in a
+documented way. Those still appear as ordinary MEDIUM findings (so they're never silently
+dropped), they just don't force the harsher `error`/exit-2 outcome on their own; a genuinely
+malformed resource entry (missing `address`, an invalid `change` block, etc.) always does.
 
 Decision precedence (first match wins) and CI exit codes:
 
-1. **`error`** (exit 2) — `strict_on_parse_warnings` is true and at least one
+1. **`error`** (exit 2) — `strict_on_parse_warnings` is true and at least one *fatal*
    `parse_warning.*` finding exists. **This is the "never fail open on invalid input"
-   guarantee**: incomplete/malformed input always fails closed here, never silently passes.
+   guarantee**: genuinely incomplete/malformed input always fails closed here, never
+   silently passes — but a stated coverage limitation on otherwise-valid input does not,
+   by itself, trigger this.
 2. **`fail`** (exit 1) — at least one finding at/above `fail_on_severity_at_or_above`.
 3. **`warn`** (exit 0) — at least one finding at/above `warn_on_severity_at_or_above`.
 4. **`pass`** (exit 0) — no findings at or above the warning threshold.

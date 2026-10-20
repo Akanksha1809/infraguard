@@ -15,9 +15,14 @@ class PolicyConfig(BaseModel):
     fail_on_severity_at_or_above: Severity = Severity.HIGH
     warn_on_severity_at_or_above: Severity = Severity.MEDIUM
     strict_on_parse_warnings: bool = True
-    """If True, any parse_warning.* finding causes an ERROR decision (exit code 2),
-    regardless of other findings — InfraGuard never treats incompletely-parsed input as a
-    clean result just because no other severity threshold was crossed."""
+    """If True, any parse_warning.* finding whose underlying ParseWarning is marked
+    fails_closed=True causes an ERROR decision (exit code 2), regardless of other
+    findings — InfraGuard never treats incompletely-parsed input as a clean result just
+    because no other severity threshold was crossed. A parse_warning.* finding marked
+    fails_closed=False (a known, stated coverage limitation rather than a data problem —
+    e.g. an unresolved module-scoped dependency) does not trigger this: the input itself
+    is fine, so it falls through to the ordinary severity-threshold checks below like any
+    other MEDIUM finding."""
 
 
 def load_policy_config(path: Path | None) -> PolicyConfig:
@@ -38,17 +43,21 @@ def load_policy_config(path: Path | None) -> PolicyConfig:
 
 
 def evaluate_policy(findings: list[Finding], config: PolicyConfig) -> PolicyDecision:
-    parse_warning_findings = [f for f in findings if f.rule_id.startswith("parse_warning.")]
-    if parse_warning_findings and config.strict_on_parse_warnings:
+    fatal_parse_warnings = [
+        f
+        for f in findings
+        if f.rule_id.startswith("parse_warning.") and f.evidence.get("fails_closed", True)
+    ]
+    if fatal_parse_warnings and config.strict_on_parse_warnings:
         return PolicyDecision(
             decision="error",
             exit_code=2,
             reason=(
-                f"{len(parse_warning_findings)} parse warning(s) present and "
+                f"{len(fatal_parse_warnings)} parse warning(s) present and "
                 "strict_on_parse_warnings is enabled; failing closed on incomplete/invalid "
                 "input rather than analyzing around it."
             ),
-            triggered_finding_ids=[f.id for f in parse_warning_findings],
+            triggered_finding_ids=[f.id for f in fatal_parse_warnings],
         )
 
     failing = [f for f in findings if f.severity >= config.fail_on_severity_at_or_above]

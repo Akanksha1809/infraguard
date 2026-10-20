@@ -225,6 +225,13 @@ def rule_dependents_affected(rc: ResourceChange, ctx: RuleContext) -> list[Findi
 def rule_parse_warnings(parsed_plan: ParsedPlan) -> list[Finding]:
     findings = []
     for warning in parsed_plan.warnings:
+        remediation = (
+            "Treat this as a known coverage gap, not a safe default; see "
+            "docs/CHANGE_ANALYSIS.md's stated limitations."
+            if not warning.fails_closed
+            else "Fix the input plan JSON, or treat the skipped/ambiguous data as "
+            "unassessed rather than safe."
+        )
         findings.append(
             Finding(
                 rule_id=f"parse_warning.{warning.code}",
@@ -233,11 +240,8 @@ def rule_parse_warnings(parsed_plan: ParsedPlan) -> list[Finding]:
                 summary=f"Parse warning: {warning.code}",
                 detail=warning.message,
                 affected_resources=[warning.resource_address] if warning.resource_address else [],
-                evidence={"code": warning.code},
-                remediation=(
-                    "Fix the input plan JSON, or treat the skipped/ambiguous data as "
-                    "unassessed rather than safe."
-                ),
+                evidence={"code": warning.code, "fails_closed": warning.fails_closed},
+                remediation=remediation,
             )
         )
     return findings

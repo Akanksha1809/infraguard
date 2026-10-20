@@ -7,9 +7,14 @@ from infraguard.errors import InputValidationError
 from infraguard.modules.change_analysis.policy import PolicyConfig, evaluate_policy, load_policy_config
 
 
-def _finding(rule_id: str, severity: Severity) -> Finding:
+def _finding(rule_id: str, severity: Severity, evidence: dict | None = None) -> Finding:
     return Finding(
-        rule_id=rule_id, severity=severity, confidence=Confidence.CONFIRMED, summary="x", detail="x"
+        rule_id=rule_id,
+        severity=severity,
+        confidence=Confidence.CONFIRMED,
+        summary="x",
+        detail="x",
+        evidence=evidence or {},
     )
 
 
@@ -42,6 +47,43 @@ def test_parse_warning_can_be_downgraded_explicitly() -> None:
     findings = [_finding("parse_warning.resource_change_missing_address", Severity.MEDIUM)]
     decision = evaluate_policy(findings, PolicyConfig(strict_on_parse_warnings=False))
     assert decision.decision == "warn"
+
+
+def test_known_limitation_parse_warning_does_not_fail_closed() -> None:
+    # fails_closed=False means "the input is fine, our coverage of it is incomplete" --
+    # a strict policy must not treat this the same as a genuinely malformed resource.
+    findings = [
+        _finding(
+            "parse_warning.module_scoped_dependencies_unsupported",
+            Severity.MEDIUM,
+            evidence={"fails_closed": False},
+        )
+    ]
+    decision = evaluate_policy(findings, PolicyConfig())
+    assert decision.decision == "warn"
+    assert decision.exit_code == 0
+
+
+def test_mixed_fatal_and_known_limitation_warnings_still_fails_closed() -> None:
+    # One genuinely fatal warning alongside one known-limitation warning must still
+    # trip the strict error path -- the fix narrows what counts as fatal, it doesn't
+    # weaken the guarantee that a real parse problem is never waved through.
+    findings = [
+        _finding(
+            "parse_warning.module_scoped_dependencies_unsupported",
+            Severity.MEDIUM,
+            evidence={"fails_closed": False},
+        ),
+        _finding(
+            "parse_warning.resource_change_missing_address",
+            Severity.MEDIUM,
+            evidence={"fails_closed": True},
+        ),
+    ]
+    decision = evaluate_policy(findings, PolicyConfig())
+    assert decision.decision == "error"
+    assert decision.exit_code == 2
+    assert len(decision.triggered_finding_ids) == 1  # only the fatal one is named
 
 
 def test_custom_thresholds_from_yaml(tmp_path: Path) -> None:

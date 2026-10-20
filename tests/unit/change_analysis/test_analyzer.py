@@ -21,6 +21,18 @@ def test_strict_policy_errors_on_parse_warning(fixture_path) -> None:
     assert report.policy_decision.exit_code == 2
 
 
+def test_module_scoped_warning_alone_does_not_force_error(fixture_path) -> None:
+    # A module-scoped resource is a known, stated coverage limitation, not malformed
+    # input -- the plan itself is fine, so the default strict policy must not treat it
+    # the same as a genuinely unparseable resource_changes entry. The only finding this
+    # fixture produces is that one warning (a plain `create`, no other rule fires), so
+    # under the default policy it should land as a MEDIUM-severity `warn`, not `error`.
+    report = analyze_plan_file(fixture_path("module_scoped.json"))
+    assert report.policy_decision.decision == "warn"
+    assert report.policy_decision.exit_code == 0
+    assert any(f.rule_id == "parse_warning.module_scoped_dependencies_unsupported" for f in report.findings)
+
+
 def test_lenient_policy_passes_clean_plan(fixture_path) -> None:
     report = analyze_plan_file(fixture_path("no_op_and_read.json"), PolicyConfig())
     assert report.policy_decision.decision == "pass"

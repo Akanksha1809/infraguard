@@ -36,6 +36,13 @@ class ParseWarning(BaseModel):
     code: str
     message: str
     resource_address: str | None = None
+    fails_closed: bool = True
+    """Whether a strict policy should treat this warning as reason to fail closed. True
+    (the default) for genuine parse/data problems, where part of the input could not be
+    understood at all. False for a known, stated coverage limitation — the input itself is
+    fine, InfraGuard's analysis of it is just incomplete in a documented way (e.g. an
+    unresolved module-scoped dependency). Defaulting to True keeps "never fail open"
+    intact for anything not explicitly marked otherwise."""
 
 
 class ResourceChange(BaseModel):
