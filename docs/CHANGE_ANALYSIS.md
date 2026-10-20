@@ -59,6 +59,16 @@ Two independent signals, both applied, because neither alone is trustworthy:
 
 Implementation: [src/infraguard/modules/change_analysis/redaction.py](../src/infraguard/modules/change_analysis/redaction.py).
 
+Redacted `before`/`after` values are surfaced directly in the `destructive_delete` and
+`destructive_replace` findings' `evidence` — a reviewer deciding whether a deletion or
+replacement is intentional needs to see what's actually changing, and this is the one place
+in the report that shows resource attribute values at all. No other rule echoes raw
+attribute values, so this is also the only place redaction has anything to redact; it was
+verified by hand that a Terraform-marked sensitive field and an unmarked-but-heuristically-
+caught one both render as `***REDACTED***` and never as their real value, in both the JSON
+and Markdown report (`tests/unit/change_analysis/test_analyzer.py::
+test_rendered_report_never_contains_a_raw_secret_value`).
+
 ## Resource categories (heuristic, not a provider schema)
 
 Pattern-matched by substring on the resource `type` string

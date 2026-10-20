@@ -1,6 +1,12 @@
 """Deterministic risk rules. Each rule is a pure function of one `ResourceChange` (plus
 shared context like the dependency graph) to a list of `Finding`s — no hidden state, no
 randomness, so the same plan always produces the same findings.
+
+`rc.before`/`rc.after` are already redacted by `parser.py` before a `ResourceChange` ever
+reaches a rule (see `redaction.py`), so including them in a finding's `evidence` — as
+`destructive_delete` and `destructive_replace` do, since a reviewer deciding whether a
+deletion/replacement is intentional needs to see what's actually changing — never risks
+leaking a secret value into a report.
 """
 
 from dataclasses import dataclass
@@ -54,7 +60,11 @@ def rule_destructive_delete(rc: ResourceChange, ctx: RuleContext) -> list[Findin
                 "read directly from the plan's action list, not inferred."
             ),
             affected_resources=[rc.address],
-            evidence={"action": list(rc.raw_actions), "resource_type": rc.resource_type},
+            evidence={
+                "action": list(rc.raw_actions),
+                "resource_type": rc.resource_type,
+                "before": rc.before,
+            },
             remediation=(
                 "Confirm this deletion is intentional and that any data or downstream "
                 "dependents have been migrated or backed up first."
@@ -93,6 +103,8 @@ def rule_destructive_replace(rc: ResourceChange, ctx: RuleContext) -> list[Findi
                 "action": list(rc.raw_actions),
                 "resource_type": rc.resource_type,
                 "replace_paths": rc.replace_paths,
+                "before": rc.before,
+                "after": rc.after,
             },
             remediation=(
                 "Confirm the replacement is intentional. If destroy-before-create, plan "

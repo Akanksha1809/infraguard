@@ -37,6 +37,17 @@ def test_invalid_json_syntax_raises(fixture_path) -> None:
         analyze_plan_file(fixture_path("invalid_json_syntax.json"))
 
 
+def test_rendered_report_never_contains_a_raw_secret_value(fixture_path) -> None:
+    from infraguard.core.reporting import render_json, render_markdown
+
+    report = analyze_plan_file(fixture_path("delete_with_secret.json"))
+
+    for rendered in (render_json(report), render_markdown(report)):
+        assert "super-secret-value" not in rendered
+        assert "unmarked-token-value" not in rendered
+        assert "***REDACTED***" in rendered  # the redaction is actually visible, not just absent
+
+
 def test_oversized_file_rejected(tmp_path) -> None:
     import infraguard.modules.change_analysis.analyzer as analyzer_module
 

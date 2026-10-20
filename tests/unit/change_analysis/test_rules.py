@@ -66,3 +66,24 @@ def test_module_scoped_warning_becomes_finding(load_fixture) -> None:
 def test_sensitive_category_mutation_on_update(load_fixture) -> None:
     findings = _run(load_fixture, "update_sensitive.json")
     assert any(f.rule_id == "sensitive_category_mutation" for f in findings)
+
+
+def test_destructive_delete_evidence_includes_redacted_before(load_fixture) -> None:
+    findings = _run(load_fixture, "delete_with_secret.json")
+    finding = next(f for f in findings if f.rule_id == "destructive_delete")
+
+    before = finding.evidence["before"]
+    assert before["master_password"] == "***REDACTED***"  # Terraform-marked sensitive
+    assert before["api_token"] == "***REDACTED***"  # heuristic key-name match
+    assert before["instance_class"] == "db.t3.micro"  # non-sensitive value passes through
+
+
+def test_destructive_replace_evidence_includes_redacted_before_and_after(load_fixture) -> None:
+    findings = _run(load_fixture, "replace_with_secret.json")
+    finding = next(f for f in findings if f.rule_id == "destructive_replace")
+
+    assert finding.evidence["before"]["master_password"] == "***REDACTED***"
+    assert finding.evidence["after"]["master_password"] == "***REDACTED***"
+    assert finding.evidence["before"]["api_token"] == "***REDACTED***"
+    assert finding.evidence["before"]["engine_version"] == "14.9"
+    assert finding.evidence["after"]["engine_version"] == "16.4"
