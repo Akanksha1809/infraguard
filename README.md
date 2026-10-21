@@ -55,7 +55,7 @@ git clone <this repo> && cd infraguard
 make install   # uv sync --extra dev
 make lint      # ruff
 make typecheck # mypy
-make test      # pytest — 203 tests, ~18s
+make test      # pytest — 209 tests, ~18s
 make demo      # scripts/demo.sh — see "Demo" below
 ```
 
@@ -143,6 +143,40 @@ above, run for you. See [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) for a narrate
 interview-ready walkthrough of the same tour, and
 [examples/sample_outputs/](examples/sample_outputs/) for committed, real output from each
 module if you'd rather read than run.
+
+## Example output
+
+Real, unedited excerpts from [examples/sample_outputs/](examples/sample_outputs/) — generated
+by actually running the commands above, not written by hand:
+
+**Change analysis** (`analyze-change` on a real `terraform show -json` plan):
+```
+## Policy decision
+- Decision: WARN (exit code 0)
+- Reason: 3 finding(s) at or above severity 'medium', below the fail threshold.
+
+### [MEDIUM] 9 attribute(s) of local_file.config are unknown until apply
+'local_file.config' has 9 attribute(s) whose final value Terraform cannot determine
+from this plan alone... this is a gap, not a clean bill of health.
+```
+
+**Failure simulation** (`simulate-failure` on a topology where the app tier *is*
+redundant, but shares one database with no redundancy of its own):
+```
+### [HIGH] 'db' is a single point of failure
+Simulating only 'db' failing causes 4 other component(s) to go down...
+- Affected resources: app-1, app-2, client, db, lb
+```
+
+**Disaster recovery** (`assess-recovery` — this is the central thing the module exists
+to catch):
+```
+### [CRITICAL] No restore has ever been tested for 'billing-db'
+A backup's existence is never evidence that it can be restored. No restore drill
+record exists for this workload at all.
+```
+`billing-db` has a backup, and that backup passed its integrity check — and it's still
+flagged, because nobody has ever actually restored from it.
 
 ## Limitations
 
